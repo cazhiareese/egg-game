@@ -46,8 +46,18 @@ public class Logic {
         nest5.setImage("nest5.png");
         nests.add(nest5);
 
-        // TODO: Generate eggs at random coordinates, each linked to a nest
-        // TODO: Ensure more eggs than nests
+        for (int i = 0; i < 5; i++) {
+            int numEggs = (int) (Math.random() * 10) + 1;
+            for (int j = 0; j < numEggs; j++) {
+                // java arrays are ordered 0-indexed
+                // get the nest at index i
+                Egg egg = new Egg(nests.get(i));
+
+                egg.setPosition((int) (Math.random() * worldWidth), (int) (Math.random() * worldHeight));
+                egg.setImage();
+                eggs.add(egg);
+            }
+        }
     }
 
     /**

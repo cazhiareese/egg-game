@@ -37,4 +37,5 @@ public class Nest extends Sprite {
     public boolean intersects(Rectangle2D other) {
         return super.intersects(other);
     }
+
 }

@@ -9,8 +9,27 @@ public class Egg extends Sprite {
     private boolean collected;
 
     public Egg(Nest nest) {
-        this.setImage("egg.png");
         this.fromNest = nest.getCode();
+    }
+
+    public void setImage() {
+        switch (this.fromNest) {
+            case 1:
+                super.setImage("egg1.png");
+                break;
+            case 2:
+                super.setImage("egg2.png");
+                break;
+            case 3:
+                super.setImage("egg3.png");
+                break;
+            case 4:
+                super.setImage("egg4.png");
+                break;
+            case 5:
+                super.setImage("egg5.png");
+                break;
+        }
     }
 
     public void update(double deltaTime) {
