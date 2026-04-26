@@ -30,4 +30,8 @@ public class EggTray {
     public Villager getOwner() {
         return this.owner;
     }
+
+    public ArrayList<Egg> getEggs() {
+        return this.eggs;
+    }
 }

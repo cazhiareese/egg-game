@@ -97,6 +97,10 @@ public class Villager extends Sprite {
         this.eggs.addEgg(e);
     }
 
+    public EggTray getEggTray() {
+        return this.eggs;
+    }
+
     public void returnedEggs(Egg e) {
         this.eggs.removeEgg(e);
     }

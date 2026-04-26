@@ -128,8 +128,23 @@ public class Logic {
      * @param nests     all nests in the world
      */
     private static void checkNestDelivery(ArrayList<Villager> villagers, ArrayList<Nest> nests) {
-        // TODO: For each villager near a nest, check tray for eggs matching nest color
-        // TODO: If match found, remove egg from tray and score the delivery
+
+        Villager currentPlayer = villagers.get(0);
+
+        for (Nest nest : nests) {
+            // Check if villager is touching this nest
+            if (currentPlayer.intersects(nest.getBounds())) {
+                // Iterate through the villager's tray and deliver matching eggs
+                Iterator<Egg> trayIter = currentPlayer.getEggTray().getEggs().iterator();
+                while (trayIter.hasNext()) {
+                    Egg egg = trayIter.next();
+                    if (egg.getFromNest() == nest.getCode()) {
+                        trayIter.remove();
+                        currentPlayer.addEggsReturned();
+                    }
+                }
+            }
+        }
     }
 
     /**
