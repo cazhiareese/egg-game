@@ -1,5 +1,5 @@
 package com.eggame.entities;
 
-public class Sprite {
+public class Egg {
 
 }

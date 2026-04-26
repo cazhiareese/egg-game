@@ -32,10 +32,19 @@ public class SceneManager {
      * Sets up and switches to the gameplay scene.
      */
     public void switchToGame() {
+        // Stop any existing game loop
+        if (this.game != null) {
+            this.game.stop();
+        }
+
         this.game = new Game();
         Scene gameScene = Game.getScene();
+
         setScene(gameScene);
         bindInput(gameScene);
+
+        // Start the game loop with shared input
+        game.start(input);
     }
 
     // Add more scene switches here as needed, e.g.:
