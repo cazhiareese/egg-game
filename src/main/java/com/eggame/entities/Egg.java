@@ -29,6 +29,10 @@ public class Egg extends Sprite {
         return super.intersects(other);
     }
 
+    public void setPosition(double x, double y) {
+        super.setPosition(x, y);
+    }
+
     public int getFromNest() {
         return fromNest;
     }

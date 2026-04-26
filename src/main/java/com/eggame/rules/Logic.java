@@ -20,6 +20,7 @@ public class Logic {
      */
     public static void initRound(ArrayList<Nest> nests, ArrayList<Egg> eggs, int worldWidth, int worldHeight) {
         // TODO: Generate nests with random colors at fixed/random positions
+
         // TODO: Generate eggs at random coordinates, each linked to a nest
         // TODO: Ensure more eggs than nests
     }
@@ -27,13 +28,14 @@ public class Logic {
     /**
      * Called every frame — handles all game rule updates.
      *
-     * @param deltaTime  seconds since last frame
-     * @param villagers  all players in the game
-     * @param eggs       all eggs in the world
-     * @param nests      all nests in the world
-     * @param input      currently pressed keys
+     * @param deltaTime seconds since last frame
+     * @param villagers all players in the game
+     * @param eggs      all eggs in the world
+     * @param nests     all nests in the world
+     * @param input     currently pressed keys
      */
-    public static void update(double deltaTime, ArrayList<Villager> villagers, ArrayList<Egg> eggs, ArrayList<Nest> nests, ArrayList<String> input) {
+    public static void update(double deltaTime, ArrayList<Villager> villagers, ArrayList<Egg> eggs,
+            ArrayList<Nest> nests, ArrayList<String> input) {
         handleInput(deltaTime, villagers, input);
         checkEggPickup(villagers, eggs);
         checkNestDelivery(villagers, nests);

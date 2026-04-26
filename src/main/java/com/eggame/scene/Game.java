@@ -69,9 +69,6 @@ public class Game {
         this.eggs = new ArrayList<Egg>();
         this.nests = new ArrayList<Nest>();
 
-        // TODO: Add player villager(s) to the list
-        // villagers.add(new Villager("Player 1"));
-
         Villager player1 = new Villager("Player 1");
         player1.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
         villagers.add(player1);
@@ -151,12 +148,6 @@ public class Game {
         }
 
     }
-
-    public Farm getFarm() {
-        return farm;
-    }
-
-    // --- Accessors ---
 
     public GraphicsContext getGc() {
         return gc;
