@@ -84,8 +84,18 @@ public class Logic {
      * @param input     currently pressed keys
      */
     private static void handleInput(double deltaTime, ArrayList<Villager> villagers, ArrayList<String> input) {
-        // TODO: Map WASD/arrow keys to villager velocity
-        // TODO: Handle multiple players if needed
+
+        Villager currentPlayer = villagers.get(0);
+        if (input.contains("LEFT"))
+            currentPlayer.addVelocity(-50, 0);
+        if (input.contains("RIGHT"))
+            currentPlayer.addVelocity(50, 0);
+        if (input.contains("UP"))
+            currentPlayer.addVelocity(0, -50);
+        if (input.contains("DOWN"))
+            currentPlayer.addVelocity(0, 50);
+
+        currentPlayer.update(deltaTime);
     }
 
     /**

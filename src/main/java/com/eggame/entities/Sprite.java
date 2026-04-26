@@ -37,6 +37,11 @@ public class Sprite {
         velocityY = y;
     }
 
+    public void addVelocity(double x, double y) {
+        velocityX += x;
+        velocityY += y;
+    }
+
     public void update(double time) {
         positionX += velocityX * time;
         positionY += velocityY * time;

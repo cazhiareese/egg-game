@@ -98,4 +98,8 @@ public class Villager extends Sprite {
     public void returnedEggs(Egg e) {
         this.eggs.removeEgg(e);
     }
+
+    public void addVelocity(int i, int j) {
+        super.addVelocity(i, j);
+    }
 }
