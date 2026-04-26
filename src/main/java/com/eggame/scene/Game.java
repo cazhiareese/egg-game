@@ -2,12 +2,13 @@ package com.eggame.scene;
 
 import java.util.ArrayList;
 
+import com.eggame.map.Farm;
+
 import javafx.animation.AnimationTimer;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
 
 /**
  * The main gameplay scene. Manages the game loop (update + render),
@@ -25,6 +26,7 @@ public class Game {
 
     private AnimationTimer gameLoop;
     private ArrayList<String> input;
+    private Farm farm;
 
     public static final int WINDOW_WIDTH = 1200;
     public static final int WINDOW_HEIGHT = 700;
@@ -49,8 +51,9 @@ public class Game {
     public void start(ArrayList<String> input) {
         this.input = input;
 
-        // Draw the background once (static farm ground)
-        renderBackground();
+        // Create the farm and draw the background once
+        this.farm = new Farm(WINDOW_WIDTH, WINDOW_HEIGHT);
+        farm.renderBackground(bgGc);
 
         // Start the game loop
         this.gameLoop = new AnimationTimer() {
@@ -108,14 +111,8 @@ public class Game {
         // TODO: Draw HUD (score, timer)
     }
 
-    /**
-     * Draws the static background (farm ground).
-     * Called once at startup since the background doesn't change.
-     */
-    private void renderBackground() {
-        // Farm ground base color
-        bgGc.setFill(Color.rgb(124, 179, 66));  // Grass green
-        bgGc.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    public Farm getFarm() {
+        return farm;
     }
 
     // --- Accessors ---
