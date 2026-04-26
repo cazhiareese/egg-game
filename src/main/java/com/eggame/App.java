@@ -1,27 +1,22 @@
 package com.eggame;
 
+import com.eggame.scene.SceneManager;
+
 import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class App extends Application {
 
     private static final String GAME_TITLE = "EGGciting Hunt!";
-    Stage stage;
 
     @Override
     public void start(Stage primaryStage) {
-        this.stage = primaryStage;
+        primaryStage.setTitle(GAME_TITLE);
 
-        try {
-            stage.setScene(Game.getScene());
-            stage.setTitle(GAME_TITLE);
-            stage.show();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        SceneManager sceneManager = new SceneManager(primaryStage);
+        sceneManager.switchToGame();
+
+        primaryStage.show();
     }
 
     public static void main(String[] args) {

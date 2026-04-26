@@ -5,6 +5,8 @@ module com.eggame {
     requires com.google.gson;
 
     opens com.eggame to javafx.fxml;
+    opens com.eggame.scene to javafx.fxml;
 
     exports com.eggame;
+    exports com.eggame.scene;
 }
