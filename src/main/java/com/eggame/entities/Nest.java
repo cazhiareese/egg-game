@@ -14,6 +14,10 @@ public class Nest extends Sprite {
         return code;
     }
 
+    public void setImage(String filename) {
+        super.setImage(filename);
+    }
+
     public void update(double deltaTime) {
         super.update(deltaTime);
     }

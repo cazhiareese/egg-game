@@ -19,7 +19,32 @@ public class Logic {
      * @param worldHeight the height of the farm world
      */
     public static void initRound(ArrayList<Nest> nests, ArrayList<Egg> eggs, int worldWidth, int worldHeight) {
-        // TODO: Generate nests with random colors at fixed/random positions
+
+        // initialize five nests
+        Nest nest1 = new Nest(1);
+        nest1.setPosition(10, 20);
+        nest1.setImage("nest1.png");
+        nests.add(nest1);
+
+        Nest nest2 = new Nest(2);
+        nest2.setPosition(30, 50);
+        nest2.setImage("nest2.png");
+        nests.add(nest2);
+
+        Nest nest3 = new Nest(3);
+        nest3.setPosition(50, 70);
+        nest3.setImage("nest3.png");
+        nests.add(nest3);
+
+        Nest nest4 = new Nest(4);
+        nest4.setPosition(70, 90);
+        nest4.setImage("nest4.png");
+        nests.add(nest4);
+
+        Nest nest5 = new Nest(5);
+        nest5.setPosition(90, 110);
+        nest5.setImage("nest5.png");
+        nests.add(nest5);
 
         // TODO: Generate eggs at random coordinates, each linked to a nest
         // TODO: Ensure more eggs than nests
