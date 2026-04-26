@@ -8,7 +8,8 @@ import javafx.scene.image.Image;
 
 public class Villager extends Sprite {
     private String name;
-    private int eggsColleced;
+    private int eggsCollected;
+    private int eggsReturned;
 
     private EggTray eggs;
 
@@ -22,7 +23,8 @@ public class Villager extends Sprite {
     public Villager(String name) {
         this.name = name;
         this.eggs = new EggTray(this);
-        this.eggsColleced = this.eggs.getNumAllEggs();
+        this.eggsCollected = this.eggs.getNumAllEggs();
+        this.eggsReturned = 0;
         // Load directional sprites
         this.imageIdle = new Image("villager_idle.png");
         this.imageUp = new Image("villager_up.png");
@@ -101,5 +103,13 @@ public class Villager extends Sprite {
 
     public void addVelocity(int i, int j) {
         super.addVelocity(i, j);
+    }
+
+    public int getEggsReturned() {
+        return eggsReturned;
+    }
+
+    public void addEggsReturned() {
+        eggsReturned++;
     }
 }

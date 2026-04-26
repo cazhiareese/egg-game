@@ -1,6 +1,7 @@
 package com.eggame.rules;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import com.eggame.entities.Egg;
 import com.eggame.entities.Nest;
@@ -106,8 +107,17 @@ public class Logic {
      * @param eggs      all eggs in the world
      */
     private static void checkEggPickup(ArrayList<Villager> villagers, ArrayList<Egg> eggs) {
-        // TODO: For each villager, check intersection with each uncollected egg
-        // TODO: If intersecting, mark egg as collected and add to villager's tray
+
+        Villager currentPlayer = villagers.get(0);
+
+        Iterator<Egg> eggIterator = eggs.iterator();
+        while (eggIterator.hasNext()) {
+            Egg currentEgg = eggIterator.next();
+            if (currentPlayer.intersects(currentEgg.getBounds())) {
+                currentPlayer.addEggs(currentEgg);
+                eggIterator.remove();
+            }
+        }
     }
 
     /**
