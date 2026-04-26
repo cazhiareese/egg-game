@@ -8,13 +8,20 @@ import javafx.stage.Stage;
 
 public class App extends Application {
 
+    private static final String GAME_TITLE = "EGGciting Hunt!";
+    Stage stage;
+
     @Override
-    public void start(Stage stage) {
-        var label = new Label("Egg Game - Multiplayer");
-        var scene = new Scene(new StackPane(label), 640, 480);
-        stage.setScene(scene);
-        stage.setTitle("Egg Game");
-        stage.show();
+    public void start(Stage primaryStage) {
+        this.stage = primaryStage;
+
+        try {
+            stage.setScene(Game.getScene());
+            stage.setTitle(GAME_TITLE);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
