@@ -3,6 +3,7 @@ package com.eggame.entities;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 
 public class Sprite {
     private Image image;
@@ -20,10 +21,17 @@ public class Sprite {
         height = i.getHeight();
     }
 
-    // overload set image by passing file name
+    // overload set image by passing file name (loads from classpath)
     public void setImage(String filename) {
-        Image i = new Image(filename);
-        setImage(i);
+        try {
+            Image i = new Image(getClass().getResourceAsStream("/com/eggame/" + filename));
+            setImage(i);
+        } catch (Exception e) {
+            System.out.println("[DEBUG] Failed to load image: " + filename + " - " + e.getMessage());
+            // Set a default size so the sprite is still visible
+            width = 32;
+            height = 32;
+        }
     }
 
     public void setPosition(double x, double y) {
@@ -48,7 +56,13 @@ public class Sprite {
     }
 
     public void render(GraphicsContext gc) {
-        gc.drawImage(image, positionX, positionY);
+        if (image != null) {
+            gc.drawImage(image, positionX, positionY);
+        } else {
+            // Fallback: draw a colored rectangle if image is missing
+            gc.setFill(Color.MAGENTA);
+            gc.fillRect(positionX, positionY, width, height);
+        }
     }
 
     public Rectangle2D getBounds() {
@@ -66,6 +80,14 @@ public class Sprite {
 
     public double getVelocityY() {
         return velocityY;
+    }
+
+    public double getPositionX() {
+        return positionX;
+    }
+
+    public double getPositionY() {
+        return positionY;
     }
 
 }

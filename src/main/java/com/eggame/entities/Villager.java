@@ -25,12 +25,12 @@ public class Villager extends Sprite {
         this.eggs = new EggTray(this);
         this.eggsCollected = this.eggs.getNumAllEggs();
         this.eggsReturned = 0;
-        // Load directional sprites
-        this.imageIdle = new Image("villager_idle.png");
-        this.imageUp = new Image("villager_up.png");
-        this.imageDown = new Image("villager_down.png");
-        this.imageLeft = new Image("villager_left.png");
-        this.imageRight = new Image("villager_right.png");
+        // Load directional sprites from classpath
+        this.imageIdle = new Image(getClass().getResourceAsStream("/com/eggame/villager_idle.png"));
+        this.imageUp = new Image(getClass().getResourceAsStream("/com/eggame/villager_up.png"));
+        this.imageDown = new Image(getClass().getResourceAsStream("/com/eggame/villager_down.png"));
+        this.imageLeft = new Image(getClass().getResourceAsStream("/com/eggame/villager_left.png"));
+        this.imageRight = new Image(getClass().getResourceAsStream("/com/eggame/villager_right.png"));
 
         // Default to idle
         this.setImage(imageIdle);

@@ -87,15 +87,21 @@ public class Logic {
     private static void handleInput(double deltaTime, ArrayList<Villager> villagers, ArrayList<String> input) {
 
         Villager currentPlayer = villagers.get(0);
-        if (input.contains("LEFT"))
-            currentPlayer.addVelocity(-50, 0);
-        if (input.contains("RIGHT"))
-            currentPlayer.addVelocity(50, 0);
-        if (input.contains("UP"))
-            currentPlayer.addVelocity(0, -50);
-        if (input.contains("DOWN"))
-            currentPlayer.addVelocity(0, 50);
+        
+        double vx = 0;
+        double vy = 0;
+        double speed = 250; // pixels per second
 
+        if (input.contains("LEFT"))
+            vx -= speed;
+        if (input.contains("RIGHT"))
+            vx += speed;
+        if (input.contains("UP"))
+            vy -= speed;
+        if (input.contains("DOWN"))
+            vy += speed;
+
+        currentPlayer.setVelocity(vx, vy);
         currentPlayer.update(deltaTime);
     }
 
@@ -114,6 +120,7 @@ public class Logic {
         while (eggIterator.hasNext()) {
             Egg currentEgg = eggIterator.next();
             if (currentPlayer.intersects(currentEgg.getBounds())) {
+                System.out.println("[DEBUG] Collected egg from nest " + currentEgg.getFromNest());
                 currentPlayer.addEggs(currentEgg);
                 eggIterator.remove();
             }
@@ -139,6 +146,7 @@ public class Logic {
                 while (trayIter.hasNext()) {
                     Egg egg = trayIter.next();
                     if (egg.getFromNest() == nest.getCode()) {
+                        System.out.println("[DEBUG] Delivered egg to nest " + nest.getCode() + ". Total returned: " + (currentPlayer.getEggsReturned() + 1));
                         trayIter.remove();
                         currentPlayer.addEggsReturned();
                     }
