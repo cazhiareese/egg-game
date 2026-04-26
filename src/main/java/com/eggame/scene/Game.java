@@ -2,7 +2,12 @@ package com.eggame.scene;
 
 import java.util.ArrayList;
 
+import com.eggame.entities.Egg;
+import com.eggame.entities.Nest;
+import com.eggame.entities.Sprite;
+import com.eggame.entities.Villager;
 import com.eggame.map.Farm;
+import com.eggame.rules.Logic;
 
 import javafx.animation.AnimationTimer;
 import javafx.scene.Group;
@@ -27,6 +32,10 @@ public class Game {
     private AnimationTimer gameLoop;
     private ArrayList<String> input;
     private Farm farm;
+
+    private ArrayList<Villager> villagers;
+    private ArrayList<Egg> eggs;
+    private ArrayList<Nest> nests;
 
     public static final int WINDOW_WIDTH = 1200;
     public static final int WINDOW_HEIGHT = 700;
@@ -54,6 +63,21 @@ public class Game {
         // Create the farm and draw the background once
         this.farm = new Farm(WINDOW_WIDTH, WINDOW_HEIGHT);
         farm.renderBackground(bgGc);
+
+        // Initialize entity lists
+        this.villagers = new ArrayList<Villager>();
+        this.eggs = new ArrayList<Egg>();
+        this.nests = new ArrayList<Nest>();
+
+        // TODO: Add player villager(s) to the list
+        // villagers.add(new Villager("Player 1"));
+
+        Villager player1 = new Villager("Player 1");
+        player1.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+        villagers.add(player1);
+
+        // Spawn nests and eggs for this round
+        Logic.initRound(nests, eggs, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         // Start the game loop
         this.gameLoop = new AnimationTimer() {
@@ -91,9 +115,14 @@ public class Game {
      * @param deltaTime seconds since last frame
      */
     private void update(double deltaTime) {
-        // TODO: Update villager movement based on input
-        // TODO: Check collisions (egg pickup, nest delivery, wall blocking)
-        // TODO: Update game state (score, timer, etc.)
+        // Delegate all game logic to Logic
+        Logic.update(deltaTime, villagers, eggs, nests, input);
+
+        // Check if round is over
+        if (Logic.isRoundOver(eggs, nests)) {
+            // TODO: Handle round end (show winner, transition scene, etc.)
+            // Villager winner = Logic.getWinner(villagers);
+        }
     }
 
     /**
@@ -104,11 +133,23 @@ public class Game {
         // Clear the foreground canvas
         gc.clearRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        // TODO: Draw eggs
-        // TODO: Draw nests
-        // TODO: Draw villagers
-        // TODO: Draw walls
-        // TODO: Draw HUD (score, timer)
+        // Draw nests
+        for (Nest nest : nests) {
+            nest.render(gc);
+        }
+
+        // Draw eggs (only uncollected ones)
+        for (Egg egg : eggs) {
+            if (!egg.isCollected()) {
+                egg.render(gc);
+            }
+        }
+
+        // Draw villagers
+        for (Villager villager : villagers) {
+            villager.render(gc);
+        }
+
     }
 
     public Farm getFarm() {

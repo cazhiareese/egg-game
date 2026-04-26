@@ -71,6 +71,10 @@ public class Villager extends Sprite {
         super.render(gc);
     }
 
+    public void setPosition(double x, double y) {
+        super.setPosition(x, y);
+    }
+
     public Rectangle2D getBounds() {
         return super.getBounds();
     }
