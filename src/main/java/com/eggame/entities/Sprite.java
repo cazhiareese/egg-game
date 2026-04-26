@@ -50,8 +50,17 @@ public class Sprite {
         return new Rectangle2D(positionX, positionY, width, height);
     }
 
-    public boolean intersects(Rectangle2D other) {
-        return getBounds().intersects(other);
+    // check intersection with another sprite
+    public boolean intersects(Rectangle2D r) {
+        return r.intersects(this.getBounds());
+    }
+
+    public double getVelocityX() {
+        return velocityX;
+    }
+
+    public double getVelocityY() {
+        return velocityY;
     }
 
 }
