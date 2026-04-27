@@ -3,6 +3,7 @@ module com.eggame {
     requires javafx.fxml;
     requires javafx.graphics;
     requires com.google.gson;
+    requires java.desktop;
 
     opens com.eggame to javafx.fxml;
     opens com.eggame.scene to javafx.fxml;

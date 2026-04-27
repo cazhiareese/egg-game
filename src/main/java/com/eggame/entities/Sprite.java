@@ -27,8 +27,7 @@ public class Sprite {
             Image i = new Image(getClass().getResourceAsStream("/com/eggame/" + filename));
             setImage(i);
         } catch (Exception e) {
-            System.out.println("[DEBUG] Failed to load image: " + filename + " - " + e.getMessage());
-            // Set a default size so the sprite is still visible
+
             width = 32;
             height = 32;
         }

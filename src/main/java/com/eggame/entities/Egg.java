@@ -7,6 +7,7 @@ public class Egg extends Sprite {
 
     private int fromNest;
     private boolean collected;
+    private boolean returnedToNest;
 
     public Egg(Nest nest) {
         this.fromNest = nest.getCode();
@@ -58,6 +59,15 @@ public class Egg extends Sprite {
 
     public boolean isCollected() {
         return collected;
+    }
+
+    public boolean isReturnedToNest() {
+
+        return returnedToNest;
+    }
+
+    public void setReturnedToNest(boolean returnedToNest) {
+        this.returnedToNest = returnedToNest;
     }
 
     public void setCollected(boolean collected) {

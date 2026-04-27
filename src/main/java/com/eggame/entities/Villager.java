@@ -116,4 +116,9 @@ public class Villager extends Sprite {
     public void addEggsReturned() {
         eggsReturned++;
     }
+
+    public void resetEggsReturned() {
+        eggsReturned = 0;
+        this.eggs.getEggs().clear();
+    }
 }

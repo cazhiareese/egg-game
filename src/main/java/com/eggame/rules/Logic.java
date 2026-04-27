@@ -23,39 +23,42 @@ public class Logic {
 
         // initialize five nests
         Nest nest1 = new Nest(1);
-        nest1.setPosition(10, 20);
+        nest1.setPosition(50, 20);
         nest1.setImage("nest1.png");
         nests.add(nest1);
 
         Nest nest2 = new Nest(2);
-        nest2.setPosition(30, 50);
+        nest2.setPosition(880, 20);
         nest2.setImage("nest2.png");
         nests.add(nest2);
 
         Nest nest3 = new Nest(3);
-        nest3.setPosition(50, 70);
+        nest3.setPosition(960, 300);
         nest3.setImage("nest3.png");
         nests.add(nest3);
 
         Nest nest4 = new Nest(4);
-        nest4.setPosition(70, 90);
+        nest4.setPosition(380, 600);
         nest4.setImage("nest4.png");
         nests.add(nest4);
 
         Nest nest5 = new Nest(5);
-        nest5.setPosition(90, 110);
+        nest5.setPosition(580, 600);
         nest5.setImage("nest5.png");
         nests.add(nest5);
 
         for (int i = 0; i < 5; i++) {
-            int numEggs = (int) (Math.random() * 10) + 1;
+            int numEggs = 4; // 5 nests * 4 eggs = exactly 20 eggs total
             for (int j = 0; j < numEggs; j++) {
-                // java arrays are ordered 0-indexed
                 // get the nest at index i
                 Egg egg = new Egg(nests.get(i));
+                egg.setImage(); // Load image first
 
-                egg.setPosition((int) (Math.random() * worldWidth), (int) (Math.random() * worldHeight));
-                egg.setImage();
+                // Offset by 50px so they don't clip outside the viewable canvas edges
+                int eggX = (int) (Math.random() * (worldWidth - 100)) + 50;
+                int eggY = (int) (Math.random() * (worldHeight - 100)) + 50;
+                egg.setPosition(eggX, eggY);
+
                 eggs.add(egg);
             }
         }
@@ -87,7 +90,7 @@ public class Logic {
     private static void handleInput(double deltaTime, ArrayList<Villager> villagers, ArrayList<String> input) {
 
         Villager currentPlayer = villagers.get(0);
-        
+
         double vx = 0;
         double vy = 0;
         double speed = 250; // pixels per second
@@ -116,13 +119,11 @@ public class Logic {
 
         Villager currentPlayer = villagers.get(0);
 
-        Iterator<Egg> eggIterator = eggs.iterator();
-        while (eggIterator.hasNext()) {
-            Egg currentEgg = eggIterator.next();
-            if (currentPlayer.intersects(currentEgg.getBounds())) {
+        for (Egg currentEgg : eggs) {
+            if (!currentEgg.isCollected() && currentPlayer.intersects(currentEgg.getBounds())) {
                 System.out.println("[DEBUG] Collected egg from nest " + currentEgg.getFromNest());
+                currentEgg.setCollected(true);
                 currentPlayer.addEggs(currentEgg);
-                eggIterator.remove();
             }
         }
     }
@@ -146,8 +147,10 @@ public class Logic {
                 while (trayIter.hasNext()) {
                     Egg egg = trayIter.next();
                     if (egg.getFromNest() == nest.getCode()) {
-                        System.out.println("[DEBUG] Delivered egg to nest " + nest.getCode() + ". Total returned: " + (currentPlayer.getEggsReturned() + 1));
+                        System.out.println("[DEBUG] Delivered egg to nest " + nest.getCode() + ". Total returned: "
+                                + (currentPlayer.getEggsReturned() + 1));
                         trayIter.remove();
+                        egg.setReturnedToNest(true);
                         currentPlayer.addEggsReturned();
                     }
                 }
@@ -163,8 +166,13 @@ public class Logic {
      * @return true if the round is finished
      */
     public static boolean isRoundOver(ArrayList<Egg> eggs, ArrayList<Nest> nests) {
-        // TODO: Define win/end condition (all eggs delivered, timer runs out, etc.)
-        return false;
+
+        for (Egg egg : eggs) {
+            if (!egg.isReturnedToNest()) {
+                return false; // At least one egg hasn't been delivered yet
+            }
+        }
+        return true;
     }
 
     /**
@@ -173,8 +181,11 @@ public class Logic {
      * @param villagers all players
      * @return the villager with the highest score
      */
-    public static Villager getWinner(ArrayList<Villager> villagers) {
-        // TODO: Compare egg counts and return the winner
-        return null;
-    }
+    // public static Villager getWinner(ArrayList<Villager> villagers) {
+    // // TODO: Compare egg counts and return the winner (for implementatio in
+    // multiplayer)
+
+    // return null;
+    // }
+    // }
 }
