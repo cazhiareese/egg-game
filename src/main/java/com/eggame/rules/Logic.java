@@ -6,87 +6,184 @@ import java.util.Iterator;
 import com.eggame.entities.Egg;
 import com.eggame.entities.Nest;
 import com.eggame.entities.Villager;
+import com.eggame.map.Farm;
+import com.eggame.map.Obstacle;
+
+import javafx.geometry.Rectangle2D;
 
 public class Logic {
 
-    /**
-     * Initializes a new round — spawns nests with random colors
-     * and eggs at random coordinates that correspond to those nests.
-     * There should be more eggs than nests.
-     *
-     * @param nests       the list to populate with spawned nests
-     * @param eggs        the list to populate with spawned eggs
-     * @param worldWidth  the width of the farm world
-     * @param worldHeight the height of the farm world
-     */
-    public static void initRound(ArrayList<Nest> nests, ArrayList<Egg> eggs, int worldWidth, int worldHeight) {
+    public static void initRound(ArrayList<Nest> nests, ArrayList<Egg> eggs, Farm farm, int worldWidth,
+            int worldHeight) {
 
         // initialize five nests
         Nest nest1 = new Nest(1);
-        nest1.setPosition(50, 20);
+        nest1.setPosition(118, 148);
         nest1.setImage("nest1.png");
         nests.add(nest1);
 
         Nest nest2 = new Nest(2);
-        nest2.setPosition(880, 20);
+        nest2.setPosition(553, 148);
         nest2.setImage("nest2.png");
         nests.add(nest2);
 
         Nest nest3 = new Nest(3);
-        nest3.setPosition(960, 300);
+        nest3.setPosition(663, 257);
         nest3.setImage("nest3.png");
         nests.add(nest3);
 
         Nest nest4 = new Nest(4);
-        nest4.setPosition(380, 600);
+        nest4.setPosition(333, 480);
         nest4.setImage("nest4.png");
         nests.add(nest4);
 
         Nest nest5 = new Nest(5);
-        nest5.setPosition(580, 600);
+        nest5.setPosition(992, 480);
         nest5.setImage("nest5.png");
         nests.add(nest5);
 
         for (int i = 0; i < 5; i++) {
             int numEggs = 4; // 5 nests * 4 eggs = exactly 20 eggs total
             for (int j = 0; j < numEggs; j++) {
-                // get the nest at index i
+                // create an egg for index i
                 Egg egg = new Egg(nests.get(i));
-                egg.setImage(); // Load image first
+                egg.setImage();
 
-                // Offset by 50px so they don't clip outside the viewable canvas edges
-                int eggX = (int) (Math.random() * (worldWidth - 100)) + 50;
-                int eggY = (int) (Math.random() * (worldHeight - 100)) + 50;
-                egg.setPosition(eggX, eggY);
+                boolean validLaunch = false;
+                int safetyCounter = 500;
+
+                while (!validLaunch && safetyCounter > 0) {
+                    int eggX = (int) (Math.random() * (worldWidth - 100)) + 50;
+                    int eggY = (int) (Math.random() * (worldHeight - 100)) + 50;
+                    egg.setPosition(eggX, eggY);
+
+                    Rectangle2D bounds = egg.getBounds();
+                    boolean hitObstacle = false;
+
+                    // Don't spawn underneath nests
+                    for (Nest n : nests) {
+                        if (n.getBounds().intersects(bounds)) {
+                            hitObstacle = true;
+                            break;
+                        }
+                    }
+
+                    // Check Grid Obstacles
+                    Obstacle[][] grid = farm.getObstacleGrid();
+                    if (!hitObstacle && grid != null) {
+                        for (int r = 0; r < grid.length && !hitObstacle; r++) {
+                            for (int c = 0; c < grid[r].length && !hitObstacle; c++) {
+                                if (grid[r][c] != null && grid[r][c].getCollide() && grid[r][c].intersects(bounds)) {
+                                    hitObstacle = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // Check Solid Wall boundaries natively
+                    if (!hitObstacle && farm.getHorizontalWallUpper() != null) {
+                        for (Obstacle obs : farm.getHorizontalWallUpper())
+                            if (obs.getCollide() && obs.intersects(bounds))
+                                hitObstacle = true;
+                    }
+                    if (!hitObstacle && farm.getHorizontalWallLower() != null) {
+                        for (Obstacle obs : farm.getHorizontalWallLower())
+                            if (obs.getCollide() && obs.intersects(bounds))
+                                hitObstacle = true;
+                    }
+                    if (!hitObstacle && farm.getVerticalWallLeft() != null) {
+                        for (Obstacle obs : farm.getVerticalWallLeft())
+                            if (obs.getCollide() && obs.intersects(bounds))
+                                hitObstacle = true;
+                    }
+                    if (!hitObstacle && farm.getVerticalWallRight() != null) {
+                        for (Obstacle obs : farm.getVerticalWallRight())
+                            if (obs.getCollide() && obs.intersects(bounds))
+                                hitObstacle = true;
+                    }
+
+                    if (!hitObstacle)
+                        validLaunch = true;
+
+                    safetyCounter--;
+                }
 
                 eggs.add(egg);
             }
         }
     }
 
-    /**
-     * Called every frame — handles all game rule updates.
-     *
-     * @param deltaTime seconds since last frame
-     * @param villagers all players in the game
-     * @param eggs      all eggs in the world
-     * @param nests     all nests in the world
-     * @param input     currently pressed keys
-     */
     public static void update(double deltaTime, ArrayList<Villager> villagers, ArrayList<Egg> eggs,
-            ArrayList<Nest> nests, ArrayList<String> input) {
+            ArrayList<Nest> nests, Farm farm, ArrayList<String> input) {
         handleInput(deltaTime, villagers, input);
+
+        // Execute interactions first before the collision pushing occurs
         checkEggPickup(villagers, eggs);
         checkNestDelivery(villagers, nests);
+
+        // Verify obstacles and push back
+        checkCollisions(deltaTime, villagers, farm, nests);
     }
 
-    /**
-     * Translates key input into villager movement (velocity).
-     *
-     * @param deltaTime seconds since last frame
-     * @param villagers all players
-     * @param input     currently pressed keys
-     */
+    private static void checkCollisions(double deltaTime, ArrayList<Villager> villagers, Farm farm,
+            ArrayList<Nest> nests) {
+        Villager player = villagers.get(0);
+        Rectangle2D bounds = player.getCollisionBounds(); // <--- Use properly tightened collision box!
+        boolean collided = false;
+        if (player.getPositionX() < 0 || player.getPositionY() < 0 ||
+                player.getPositionX() + bounds.getWidth() > farm.getWidth() ||
+                player.getPositionY() + bounds.getHeight() > farm.getHeight()) {
+            collided = true;
+        }
+
+        if (!collided && nests != null) {
+            for (Nest nest : nests) {
+                if (nest.getCollisionBounds().intersects(bounds)) {
+                    collided = true;
+                    break;
+                }
+            }
+        }
+
+        Obstacle[][] grid = farm.getObstacleGrid();
+        if (!collided && grid != null) {
+            for (int r = 0; r < grid.length && !collided; r++) {
+                for (int c = 0; c < grid[r].length && !collided; c++) {
+                    if (grid[r][c] != null && grid[r][c].getCollide() && grid[r][c].intersects(bounds)) {
+                        collided = true;
+                    }
+                }
+            }
+        }
+        if (!collided && farm.getHorizontalWallUpper() != null) {
+            for (Obstacle obs : farm.getHorizontalWallUpper())
+                if (obs.getCollide() && obs.intersects(bounds))
+                    collided = true;
+        }
+        if (!collided && farm.getHorizontalWallLower() != null) {
+            for (Obstacle obs : farm.getHorizontalWallLower())
+                if (obs.getCollide() && obs.intersects(bounds))
+                    collided = true;
+        }
+        if (!collided && farm.getVerticalWallLeft() != null) {
+            for (Obstacle obs : farm.getVerticalWallLeft())
+                if (obs.getCollide() && obs.intersects(bounds))
+                    collided = true;
+        }
+        if (!collided && farm.getVerticalWallRight() != null) {
+            for (Obstacle obs : farm.getVerticalWallRight())
+                if (obs.getCollide() && obs.intersects(bounds))
+                    collided = true;
+        }
+
+        // Apply physical bounce-back block
+        if (collided) {
+            player.setPosition(
+                    player.getPositionX() - player.getVelocityX() * deltaTime,
+                    player.getPositionY() - player.getVelocityY() * deltaTime);
+        }
+    }
+
     private static void handleInput(double deltaTime, ArrayList<Villager> villagers, ArrayList<String> input) {
 
         Villager currentPlayer = villagers.get(0);
@@ -108,13 +205,6 @@ public class Logic {
         currentPlayer.update(deltaTime);
     }
 
-    /**
-     * Checks if any villager is overlapping an uncollected egg
-     * and picks it up if so.
-     *
-     * @param villagers all players
-     * @param eggs      all eggs in the world
-     */
     private static void checkEggPickup(ArrayList<Villager> villagers, ArrayList<Egg> eggs) {
 
         Villager currentPlayer = villagers.get(0);
@@ -128,13 +218,6 @@ public class Logic {
         }
     }
 
-    /**
-     * Checks if any villager is overlapping a nest and delivers
-     * matching eggs from their tray.
-     *
-     * @param villagers all players
-     * @param nests     all nests in the world
-     */
     private static void checkNestDelivery(ArrayList<Villager> villagers, ArrayList<Nest> nests) {
 
         Villager currentPlayer = villagers.get(0);
@@ -158,29 +241,16 @@ public class Logic {
         }
     }
 
-    /**
-     * Checks if the round is over (e.g., all eggs delivered or timer expired).
-     *
-     * @param eggs  all eggs in the world
-     * @param nests all nests in the world
-     * @return true if the round is finished
-     */
     public static boolean isRoundOver(ArrayList<Egg> eggs, ArrayList<Nest> nests) {
 
         for (Egg egg : eggs) {
             if (!egg.isReturnedToNest()) {
-                return false; // At least one egg hasn't been delivered yet
+                return false;
             }
         }
         return true;
     }
 
-    /**
-     * Determines the winner based on who delivered the most eggs.
-     *
-     * @param villagers all players
-     * @return the villager with the highest score
-     */
     // public static Villager getWinner(ArrayList<Villager> villagers) {
     // // TODO: Compare egg counts and return the winner (for implementatio in
     // multiplayer)

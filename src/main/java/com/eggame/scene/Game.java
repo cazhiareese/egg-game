@@ -8,28 +8,19 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import com.eggame.entities.Egg;
 import com.eggame.entities.Nest;
-import com.eggame.entities.Sprite;
 import com.eggame.entities.Villager;
 import com.eggame.map.Farm;
 import com.eggame.rules.Logic;
-
 import javafx.animation.AnimationTimer;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.text.Font;
-
-/**
- * The main gameplay scene. Manages the game loop (update + render),
- * the two-layer canvas system, and all game state.
- */
 
 public class Game {
     private static Scene gameScene;
     private GameState gameState = GameState.PLAYING;
-    private Font endFont = new Font("Arial", 36);
-    private Font subFont = new Font("Arial", 20);
+
     protected Group root;
     protected Canvas canvas;
     protected Canvas bg;
@@ -60,11 +51,6 @@ public class Game {
         Game.gameScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
-    /**
-     * Starts the game loop. Must be called after input is bound.
-     *
-     * @param input the shared input list from SceneManager
-     */
     public void start(ArrayList<String> input) {
         this.input = input;
 
@@ -82,7 +68,7 @@ public class Game {
         villagers.add(player1);
 
         // Spawn nests and eggs for this round
-        Logic.initRound(nests, eggs, WINDOW_WIDTH, WINDOW_HEIGHT);
+        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         // Start the game loop
         this.gameLoop = new AnimationTimer() {
@@ -105,25 +91,17 @@ public class Game {
         gameLoop.start();
     }
 
-    /**
-     * Stops the game loop.
-     */
     public void stop() {
         if (gameLoop != null) {
             gameLoop.stop();
         }
     }
 
-    /**
-     * Called every frame — update game logic here.
-     *
-     * @param deltaTime seconds since last frame
-     */
     private void update(double deltaTime) {
         // Delegate all game logic to Logic
         if (gameState == GameState.ROUND_OVER)
             return;
-        Logic.update(deltaTime, villagers, eggs, nests, input);
+        Logic.update(deltaTime, villagers, eggs, nests, farm, input);
 
         if (Logic.isRoundOver(eggs, nests)) {
             gameState = GameState.ROUND_OVER;
@@ -131,10 +109,6 @@ public class Game {
         }
     }
 
-    /**
-     * Called every frame — draw all entities here.
-     * Clears the foreground canvas and redraws everything.
-     */
     private void render() {
         // Clear the foreground canvas
         gc.clearRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -192,7 +166,7 @@ public class Game {
         nests.clear();
 
         // re-initialize your eggs/nests here
-        Logic.initRound(nests, eggs, WINDOW_WIDTH, WINDOW_HEIGHT);
+        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
     public GraphicsContext getGc() {

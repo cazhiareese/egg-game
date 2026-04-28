@@ -34,6 +34,9 @@ public class Villager extends Sprite {
 
         // Default to idle
         this.setImage(imageIdle);
+
+        // Explicitly lock the graphic scaling footprint to standard frame size
+        this.setSize(78, 97.2);
     }
 
     public void update(double time) {
@@ -42,10 +45,6 @@ public class Villager extends Sprite {
         super.update(time);
     }
 
-    /**
-     * Swaps the sprite image based on current velocity direction.
-     * Prioritizes horizontal over vertical when moving diagonally.
-     */
     private void updateDirectionalImage() {
         double vx = getVelocityX();
         double vy = getVelocityY();

@@ -20,9 +20,15 @@ public class Obstacle {
         return new Rectangle2D(positionX, positionY, width, height);
     }
 
-    // check intersection with another sprite
+    public Rectangle2D getCollisionBounds() {
+
+        double padX = width * 0.05;
+        double padY = height * 0.1;
+        return new Rectangle2D(positionX + padX, positionY + padY, width - 2 * padX, height - 2 * padY);
+    }
+
     public boolean intersects(Rectangle2D r) {
-        return r.intersects(this.getBounds());
+        return r.intersects(this.getCollisionBounds());
     }
 
     public void setPosition(double x, double y) {

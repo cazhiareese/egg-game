@@ -1,12 +1,8 @@
 package com.eggame.map;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Represents the farm world — handles rendering the static background
@@ -119,7 +115,7 @@ public class Farm {
         for (int i = 0; i < 35; i++) {
             Obstacle wall = new Obstacle(true);
             wall.setImage("wall1.png");
-            wall.setPosition(10 + i * (40 + WALL_SPACING), 625);
+            wall.setPosition(10 + i * (40 + WALL_SPACING), 635);
             horizontalWallLower.add(wall);
         }
 
@@ -197,6 +193,22 @@ public class Farm {
 
     public Obstacle[][] getObstacleGrid() {
         return obstacleGrid;
+    }
+
+    public ArrayList<Obstacle> getHorizontalWallUpper() {
+        return horizontalWallUpper;
+    }
+
+    public ArrayList<Obstacle> getHorizontalWallLower() {
+        return horizontalWallLower;
+    }
+
+    public ArrayList<Obstacle> getVerticalWallLeft() {
+        return verticalWallLeft;
+    }
+
+    public ArrayList<Obstacle> getVerticalWallRight() {
+        return verticalWallRight;
     }
 
     public int getWidth() {

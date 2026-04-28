@@ -14,11 +14,20 @@ public class Sprite {
 
     private double width;
     private double height;
+    private boolean sizeLocked = false;
+
+    public void setSize(double w, double h) {
+        this.width = w;
+        this.height = h;
+        this.sizeLocked = true;
+    }
 
     public void setImage(Image i) {
         image = i;
-        width = i.getWidth();
-        height = i.getHeight();
+        if (!sizeLocked) {
+            width = i.getWidth();
+            height = i.getHeight();
+        }
     }
 
     // overload set image by passing file name (loads from classpath)
@@ -56,7 +65,7 @@ public class Sprite {
 
     public void render(GraphicsContext gc) {
         if (image != null) {
-            gc.drawImage(image, positionX, positionY);
+            gc.drawImage(image, positionX, positionY, width, height);
         } else {
             // Fallback: draw a colored rectangle if image is missing
             gc.setFill(Color.MAGENTA);
@@ -66,6 +75,15 @@ public class Sprite {
 
     public Rectangle2D getBounds() {
         return new Rectangle2D(positionX, positionY, width, height);
+    }
+
+    public Rectangle2D getCollisionBounds() {
+
+        double hitWidth = width * 0.8;
+        double hitHeight = height * 0.6;
+        double offsetX = (width - hitWidth) / 2;
+        double offsetY = height - hitHeight;
+        return new Rectangle2D(positionX + offsetX, positionY + offsetY, hitWidth, hitHeight);
     }
 
     // check intersection with another sprite
