@@ -18,11 +18,16 @@ public class Farm {
     private final int height;
     private Tile[][] mapGrid;
     private Obstacle[][] obstacleGrid;
+    private ArrayList<Obstacle> verticalWallLeft;
+    private ArrayList<Obstacle> verticalWallRight;
+    private ArrayList<Obstacle> horizontalWallUpper;
+    private ArrayList<Obstacle> horizontalWallLower;
 
     private static final int TILE_SIZE = 95;
     private static final int SPACING = 14; // Controls visual gap between tiles
     private static final int COLS = 11;
     private static final int ROWS = 6;
+    private static final int WALL_SPACING = 4;
 
     public Farm(int width, int height) {
         this.width = width;
@@ -33,6 +38,10 @@ public class Farm {
     private void loadMap() {
         mapGrid = new Tile[ROWS][COLS];
         obstacleGrid = new Obstacle[ROWS][COLS];
+        verticalWallLeft = new ArrayList<Obstacle>();
+        verticalWallRight = new ArrayList<Obstacle>();
+        horizontalWallUpper = new ArrayList<Obstacle>();
+        horizontalWallLower = new ArrayList<Obstacle>();
 
         // Systematically center the physical bounds of the entire grid within the
         // window
@@ -98,6 +107,35 @@ public class Farm {
         } catch (Exception e) {
             System.out.println("[DEBUG] Failed to load map_layout.txt: " + e.getMessage());
         }
+
+        // Create upper horizontal walls
+        for (int i = 0; i < 35; i++) {
+            Obstacle wall = new Obstacle(true);
+            wall.setImage("wall1.png");
+            wall.setPosition(10 + i * (40 + WALL_SPACING), 2);
+            horizontalWallUpper.add(wall);
+        }
+
+        for (int i = 0; i < 35; i++) {
+            Obstacle wall = new Obstacle(true);
+            wall.setImage("wall1.png");
+            wall.setPosition(10 + i * (40 + WALL_SPACING), 625);
+            horizontalWallLower.add(wall);
+        }
+
+        for (int i = 0; i < 6; i++) {
+            Obstacle wall = new Obstacle(true);
+            wall.setImage("wall2.png");
+            wall.setPosition(2, 85 + i * (80 + 10));
+            verticalWallLeft.add(wall);
+        }
+
+        for (int i = 0; i < 6; i++) {
+            Obstacle wall = new Obstacle(true);
+            wall.setImage("wall2.png");
+            wall.setPosition(1155, 85 + i * (80 + 10));
+            verticalWallRight.add(wall);
+        }
     }
 
     /**
@@ -129,6 +167,30 @@ public class Farm {
                         obstacleGrid[row][col].render(bgGc);
                     }
                 }
+            }
+        }
+
+        if (horizontalWallUpper != null) {
+            for (int i = 0; i < horizontalWallUpper.size(); i++) {
+                horizontalWallUpper.get(i).render(bgGc);
+            }
+        }
+
+        if (horizontalWallLower != null) {
+            for (int i = 0; i < horizontalWallLower.size(); i++) {
+                horizontalWallLower.get(i).render(bgGc);
+            }
+        }
+
+        if (verticalWallLeft != null) {
+            for (int i = 0; i < verticalWallLeft.size(); i++) {
+                verticalWallLeft.get(i).render(bgGc);
+            }
+        }
+
+        if (verticalWallRight != null) {
+            for (int i = 0; i < verticalWallRight.size(); i++) {
+                verticalWallRight.get(i).render(bgGc);
             }
         }
     }
