@@ -125,13 +125,6 @@ public class Game {
             return;
         Logic.update(deltaTime, villagers, eggs, nests, input);
 
-        // Check if round is over
-        // if (Logic.isRoundOver(eggs, nests)) {
-        // // TODO: Handle round end (show winner, transition scene, etc.)
-        // gameState = GameState.ROUND_OVER;
-        // // Villager winner = Logic.getWinner(villagers);
-        // }
-
         if (Logic.isRoundOver(eggs, nests)) {
             gameState = GameState.ROUND_OVER;
             showRoundOverPopup();
@@ -150,8 +143,6 @@ public class Game {
         for (Nest nest : nests) {
             nest.render(gc);
         }
-
-        // Draw eggs (only uncollected ones)
         for (Egg egg : eggs) {
             if (!egg.isCollected()) {
                 egg.render(gc);

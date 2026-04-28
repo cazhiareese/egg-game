@@ -1,6 +1,7 @@
 package com.eggame.map;
 
 import javafx.geometry.Rectangle2D;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 
 public class Obstacle {
@@ -9,6 +10,11 @@ public class Obstacle {
     private double height;
     private double positionX;
     private double positionY;
+    private boolean collide;
+
+    public Obstacle(boolean collide) {
+        this.collide = collide;
+    }
 
     public Rectangle2D getBounds() {
         return new Rectangle2D(positionX, positionY, width, height);
@@ -24,9 +30,30 @@ public class Obstacle {
         this.positionY = y;
     }
 
+    public boolean getCollide() {
+        return collide;
+    }
+
     public void setImage(Image i) {
         image = i;
         width = i.getWidth();
         height = i.getHeight();
+    }
+
+    public void setImage(String filename) {
+        try {
+            Image i = new Image(getClass().getResourceAsStream("/com/eggame/" + filename));
+            setImage(i);
+        } catch (Exception e) {
+
+            width = 32;
+            height = 32;
+        }
+    }
+
+    public void render(GraphicsContext gc) {
+        if (image != null) {
+            gc.drawImage(image, positionX, positionY);
+        }
     }
 }

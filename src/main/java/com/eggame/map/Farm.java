@@ -5,6 +5,8 @@ import java.io.InputStreamReader;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Represents the farm world — handles rendering the static background
@@ -15,6 +17,8 @@ public class Farm {
     private final int width;
     private final int height;
     private Tile[][] mapGrid;
+    private Obstacle[][] obstacleGrid;
+
     private static final int TILE_SIZE = 95;
     private static final int SPACING = 14; // Controls visual gap between tiles
     private static final int COLS = 11;
@@ -28,6 +32,7 @@ public class Farm {
 
     private void loadMap() {
         mapGrid = new Tile[ROWS][COLS];
+        obstacleGrid = new Obstacle[ROWS][COLS];
 
         // Systematically center the physical bounds of the entire grid within the
         // window
@@ -62,6 +67,37 @@ public class Farm {
         } catch (Exception e) {
             System.out.println("[DEBUG] Failed to load map_layout.txt: " + e.getMessage());
         }
+
+        try {
+            java.io.File file = new java.io.File("src/main/java/com/eggame/map/obstacle_layout.txt");
+            java.util.Scanner scanner = new java.util.Scanner(file);
+
+            for (int row = 0; row < ROWS && scanner.hasNextLine(); row++) {
+                String line = scanner.nextLine().trim();
+                String[] tokens = line.split("\\s+");
+                for (int col = 0; col < COLS && col < tokens.length; col++) {
+                    String obstacleType = tokens[col];
+
+                    if (obstacleType.equals("0")) {
+                        continue;
+                    }
+                    // Create new tile parsing tile string 1 to 5 into .png filename
+                    Obstacle obstacle = new Obstacle(true);
+                    obstacle.setImage("obstacle" + obstacleType + ".png");
+                    // Factor in spacing dynamically across the index offsets
+                    double posX = startX + col * (TILE_SIZE + SPACING);
+                    double posY = startY + row * (TILE_SIZE + SPACING);
+
+                    obstacle.setPosition(posX, posY);
+                    obstacleGrid[row][col] = obstacle;
+                }
+            }
+            scanner.close();
+
+            System.out.println("[DEBUG] Map loaded successfully");
+        } catch (Exception e) {
+            System.out.println("[DEBUG] Failed to load map_layout.txt: " + e.getMessage());
+        }
     }
 
     /**
@@ -85,6 +121,20 @@ public class Farm {
             }
         }
 
+        // Render static obstacles on top of the tiles
+        if (obstacleGrid != null) {
+            for (int row = 0; row < obstacleGrid.length; row++) {
+                for (int col = 0; col < obstacleGrid[row].length; col++) {
+                    if (obstacleGrid[row][col] != null) {
+                        obstacleGrid[row][col].render(bgGc);
+                    }
+                }
+            }
+        }
+    }
+
+    public Obstacle[][] getObstacleGrid() {
+        return obstacleGrid;
     }
 
     public int getWidth() {
