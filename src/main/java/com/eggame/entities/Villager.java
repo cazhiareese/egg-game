@@ -53,7 +53,6 @@ public class Villager extends Sprite {
         if (vx == 0 && vy == 0) {
             setImage(imageIdle);
         } else if (Math.abs(vx) >= Math.abs(vy)) {
-            // Horizontal movement takes priority
             if (vx > 0) {
                 setImage(imageRight);
             } else {
