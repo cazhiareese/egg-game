@@ -130,11 +130,11 @@ public class Logic {
         Villager player = villagers.get(0);
         Rectangle2D bounds = player.getCollisionBounds(); // <--- Use properly tightened collision box!
         boolean collided = false;
-        if (player.getPositionX() < 0 || player.getPositionY() < 0 ||
-                player.getPositionX() + bounds.getWidth() > farm.getWidth() ||
-                player.getPositionY() + bounds.getHeight() > farm.getHeight()) {
-            collided = true;
-        }
+        // if (player.getPositionX() < 0 || player.getPositionY() < 0 ||
+        //         player.getPositionX() + bounds.getWidth() > farm.getWidth() ||
+        //         player.getPositionY() + bounds.getHeight() > farm.getHeight()) {
+        //     collided = true;
+        // }
 
         if (!collided && nests != null) {
             for (Nest nest : nests) {

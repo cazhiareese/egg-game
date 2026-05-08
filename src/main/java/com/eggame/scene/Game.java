@@ -2,20 +2,22 @@ package com.eggame.scene;
 
 import java.util.ArrayList;
 
-import javafx.application.Platform;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.ButtonType;
+import com.eggame.entities.Camera;
 import com.eggame.entities.Egg;
 import com.eggame.entities.Nest;
 import com.eggame.entities.Villager;
 import com.eggame.map.Farm;
 import com.eggame.rules.Logic;
+
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonType;
 
 public class Game {
     private static Scene gameScene;
@@ -33,6 +35,7 @@ public class Game {
     private Farm farm;
 
     private ArrayList<Villager> villagers;
+    private Camera mainCamera;
     private ArrayList<Egg> eggs;
     private ArrayList<Nest> nests;
 
@@ -47,7 +50,7 @@ public class Game {
         this.gc = canvas.getGraphicsContext2D();
         this.bgGc = bg.getGraphicsContext2D();
 
-        this.root.getChildren().addAll(this.bg, this.canvas);
+        this.root.getChildren().add(this.canvas);
         Game.gameScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
@@ -55,8 +58,8 @@ public class Game {
         this.input = input;
 
         // Create the farm and draw the background once
-        this.farm = new Farm(WINDOW_WIDTH, WINDOW_HEIGHT);
-        farm.renderBackground(bgGc);
+        this.farm = new Farm(WINDOW_WIDTH*2, WINDOW_HEIGHT*2);
+        // farm.renderBackground(bgGc);
 
         // Initialize entity lists
         this.villagers = new ArrayList<Villager>();
@@ -64,7 +67,11 @@ public class Game {
         this.nests = new ArrayList<Nest>();
 
         Villager player1 = new Villager("Player 1");
+        this.mainCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
         player1.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+
+        mainCamera.follow(player1.getPositionX(), player1.getPositionY(), farm);
+
         villagers.add(player1);
 
         // Spawn nests and eggs for this round
@@ -102,6 +109,9 @@ public class Game {
         if (gameState == GameState.ROUND_OVER)
             return;
         Logic.update(deltaTime, villagers, eggs, nests, farm, input);
+        
+        Villager player = villagers.get(0);
+        mainCamera.follow(player.getPositionX(), player.getPositionY(), farm);
 
         if (Logic.isRoundOver(eggs, nests)) {
             gameState = GameState.ROUND_OVER;
@@ -113,6 +123,10 @@ public class Game {
         // Clear the foreground canvas
         gc.clearRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
+        gc.save();
+        gc.translate(-mainCamera.getX(), -mainCamera.getY());
+
+        farm.renderBackground(gc); // on the main gc, inside the camera transform
         // Draw nests
         for (Nest nest : nests) {
             nest.render(gc);
@@ -127,7 +141,7 @@ public class Game {
         for (Villager villager : villagers) {
             villager.render(gc);
         }
-
+        gc.restore(); // reset transform back to identity for next frame
     }
 
     private void showRoundOverPopup() {
