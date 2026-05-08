@@ -1,8 +1,9 @@
 package com.eggame.map;
 
+import java.util.ArrayList;
+
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import java.util.ArrayList;
 
 /**
  * Represents the farm world — handles rendering the static background
@@ -21,8 +22,8 @@ public class Farm {
 
     private static final int TILE_SIZE = 95;
     private static final int SPACING = 14; // Controls visual gap between tiles
-    private static final int COLS = 11;
-    private static final int ROWS = 6;
+    private static final int COLS = 22;
+    private static final int ROWS = 12;
     private static final int WALL_SPACING = 4;
 
     public Farm(int width, int height) {
@@ -105,33 +106,33 @@ public class Farm {
         }
 
         // Create upper horizontal walls
-        for (int i = 0; i < 35; i++) {
-            Obstacle wall = new Obstacle(true);
-            wall.setImage("wall1.png");
-            wall.setPosition(10 + i * (40 + WALL_SPACING), 2);
-            horizontalWallUpper.add(wall);
-        }
+        // for (int i = 0; i < 35; i++) {
+        //     Obstacle wall = new Obstacle(true);
+        //     wall.setImage("wall1.png");
+        //     wall.setPosition(10 + i * (40 + WALL_SPACING), 2);
+        //     horizontalWallUpper.add(wall);
+        // }
 
-        for (int i = 0; i < 35; i++) {
-            Obstacle wall = new Obstacle(true);
-            wall.setImage("wall1.png");
-            wall.setPosition(10 + i * (40 + WALL_SPACING), 635);
-            horizontalWallLower.add(wall);
-        }
+        // for (int i = 0; i < 35; i++) {
+        //     Obstacle wall = new Obstacle(true);
+        //     wall.setImage("wall1.png");
+        //     wall.setPosition(10 + i * (40 + WALL_SPACING), 635);
+        //     horizontalWallLower.add(wall);
+        // }
 
-        for (int i = 0; i < 6; i++) {
-            Obstacle wall = new Obstacle(true);
-            wall.setImage("wall2.png");
-            wall.setPosition(2, 85 + i * (80 + 10));
-            verticalWallLeft.add(wall);
-        }
+        // for (int i = 0; i < 6; i++) {
+        //     Obstacle wall = new Obstacle(true);
+        //     wall.setImage("wall2.png");
+        //     wall.setPosition(2, 85 + i * (80 + 10));
+        //     verticalWallLeft.add(wall);
+        // }
 
-        for (int i = 0; i < 6; i++) {
-            Obstacle wall = new Obstacle(true);
-            wall.setImage("wall2.png");
-            wall.setPosition(1155, 85 + i * (80 + 10));
-            verticalWallRight.add(wall);
-        }
+        // for (int i = 0; i < 6; i++) {
+        //     Obstacle wall = new Obstacle(true);
+        //     wall.setImage("wall2.png");
+        //     wall.setPosition(1155, 85 + i * (80 + 10));
+        //     verticalWallRight.add(wall);
+        // }
     }
 
     /**
