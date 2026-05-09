@@ -18,6 +18,9 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 
 public class Game {
     private static Scene gameScene;
@@ -38,6 +41,7 @@ public class Game {
     private Camera mainCamera;
     private ArrayList<Egg> eggs;
     private ArrayList<Nest> nests;
+    private Font usedFont;
 
     public static final int WINDOW_WIDTH = 1200;
     public static final int WINDOW_HEIGHT = 700;
@@ -49,6 +53,8 @@ public class Game {
 
         this.gc = canvas.getGraphicsContext2D();
         this.bgGc = bg.getGraphicsContext2D();
+
+        this.usedFont = Font.loadFont(getClass().getResourceAsStream("/com/eggame/villager_up/fonts.ttf"), 20);
 
         this.root.getChildren().add(this.canvas);
         Game.gameScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -127,6 +133,8 @@ public class Game {
         gc.translate(-mainCamera.getX(), -mainCamera.getY());
 
         farm.renderBackground(gc); // on the main gc, inside the camera transform
+
+
         // Draw nests
         for (Nest nest : nests) {
             nest.render(gc);
@@ -141,7 +149,54 @@ public class Game {
         for (Villager villager : villagers) {
             villager.render(gc);
         }
+
         gc.restore(); // reset transform back to identity for next frame
+        this.showTimer();
+        this.showDetails();
+
+
+    }
+
+
+    private void showDetails(){
+        gc.setLineWidth(12);
+        gc.setFill(Color.web("#C48C47"));
+        gc.setStroke(Color.web("#60312B")); // Set outline color
+        gc.strokeRoundRect(12, WINDOW_HEIGHT-60, 380, 48, 32, 32);
+        gc.fillRoundRect(12, WINDOW_HEIGHT-60,  380, 48, 32, 32);
+        
+        // compare which player has the most eggs returned essentially
+        String placement = "1st";
+        gc.setFill(Color.web("#FFF7D6"));
+        gc.setFont( Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 72));
+        gc.strokeText(placement, 80, WINDOW_HEIGHT-32);
+        gc.fillText(placement, 80, WINDOW_HEIGHT-32);
+
+        // this handles the number of eggs this will change based around the number of eggs returned
+        gc.setLineWidth(6);
+        String eggCount = "4";
+        gc.setFont( Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 24));
+        gc.strokeText(eggCount, 172, WINDOW_HEIGHT-32);
+        gc.fillText(eggCount, 172, WINDOW_HEIGHT-32);
+
+        String info = "eggs delivered";
+        gc.strokeText(info, 280, WINDOW_HEIGHT-32);
+        gc.fillText(info, 280, WINDOW_HEIGHT-32);
+    }
+
+    // Work in progress
+    private void showTimer(){
+        // int mins = (int) timeRemaining / 60, secs = (int) timeRemaining % 60;
+        String timeStr = String.format("%d:%02d", 02, 0);
+        gc.setFont( Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 64));
+        // Color may change depending on the time left
+        gc.setFill(30 < 20 ? Color.web("#bc6262") : Color.web("#FFF7D6"));
+        gc.setStroke(Color.web("#60312B")); 
+        gc.setLineWidth(8);
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.strokeText(timeStr, WINDOW_WIDTH / 2.0, 72);
+
+        gc.fillText(timeStr, WINDOW_WIDTH / 2.0, 72);
     }
 
     private void showRoundOverPopup() {
