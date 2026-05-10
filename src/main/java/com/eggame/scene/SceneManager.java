@@ -1,0 +1,71 @@
+package com.eggame.scene;
+
+import java.util.ArrayList;
+
+import javafx.event.EventHandler;
+import javafx.scene.Scene;
+import javafx.scene.input.KeyEvent;
+import javafx.stage.Stage;
+
+public class SceneManager {
+
+    private final Stage stage;
+    private final ArrayList<String> input;
+
+    private Game game;
+
+    public SceneManager(Stage stage) {
+        this.stage = stage;
+        this.input = new ArrayList<>();
+    }
+
+    public void switchToGame() {
+        // Stop any existing game loop
+        if (this.game != null) {
+            this.game.stop();
+        }
+
+        this.game = new Game();
+        Scene gameScene = Game.getScene();
+
+        setScene(gameScene);
+        bindInput(gameScene);
+
+        // Start the game loop with shared input
+        game.start(input);
+    }
+
+    // public void switchToMainMenu() { ... }
+    // public void switchToGameOver() { ... }
+    // public void switchToSplash() { ... }
+
+    public ArrayList<String> getInput() {
+        return input;
+    }
+
+    public Game getGame() {
+        return game;
+    }
+
+    private void setScene(Scene scene) {
+        stage.setScene(scene);
+    }
+
+    private void bindInput(Scene scene) {
+        scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            public void handle(KeyEvent e) {
+                String code = e.getCode().toString();
+                if (!input.contains(code)) {
+                    input.add(code);
+                }
+            }
+        });
+
+        scene.setOnKeyReleased(new EventHandler<KeyEvent>() {
+            public void handle(KeyEvent e) {
+                String code = e.getCode().toString();
+                input.remove(code);
+            }
+        });
+    }
+}
