@@ -18,27 +18,27 @@ public class Logic {
 
         // initialize five nests
         Nest nest1 = new Nest(1);
-        nest1.setPosition(118, 148);
+        nest1.setPosition(118, 178);
         nest1.setImage("nest1.png");
         nests.add(nest1);
 
         Nest nest2 = new Nest(2);
-        nest2.setPosition(553, 148);
+        nest2.setPosition(1865, 280);
         nest2.setImage("nest2.png");
         nests.add(nest2);
 
         Nest nest3 = new Nest(3);
-        nest3.setPosition(663, 257);
+        nest3.setPosition(1316, 724);
         nest3.setImage("nest3.png");
         nests.add(nest3);
 
         Nest nest4 = new Nest(4);
-        nest4.setPosition(333, 480);
+        nest4.setPosition(1968, 1148);
         nest4.setImage("nest4.png");
         nests.add(nest4);
 
         Nest nest5 = new Nest(5);
-        nest5.setPosition(992, 480);
+        nest5.setPosition(444, 940);
         nest5.setImage("nest5.png");
         nests.add(nest5);
 
@@ -100,6 +100,14 @@ public class Logic {
                         for (Obstacle obs : farm.getVerticalWallRight())
                             if (obs.getCollide() && obs.intersects(bounds))
                                 hitObstacle = true;
+                    }
+
+                   for (Egg placed : eggs) {
+                        if (!hitObstacle && Math.sqrt(
+                                Math.pow(eggX - (placed.getPositionX() + placed.getBounds().getWidth() / 2), 2) +
+                                Math.pow(eggY - (placed.getPositionY() + placed.getBounds().getHeight() / 2), 2)) < 150) {
+                            hitObstacle = true;
+                        }
                     }
 
                     if (!hitObstacle)
@@ -241,7 +249,10 @@ public class Logic {
         }
     }
 
-    public static boolean isRoundOver(ArrayList<Egg> eggs, ArrayList<Nest> nests) {
+    public static boolean isRoundOver(ArrayList<Egg> eggs, ArrayList<Nest> nests, double remainingTime ) {
+        if(remainingTime < 0){
+            return true;
+        }
 
         for (Egg egg : eggs) {
             if (!egg.isReturnedToNest()) {
@@ -250,6 +261,8 @@ public class Logic {
         }
         return true;
     }
+
+
 
     // public static Villager getWinner(ArrayList<Villager> villagers) {
     // // TODO: Compare egg counts and return the winner (for implementatio in

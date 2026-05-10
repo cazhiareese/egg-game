@@ -41,10 +41,16 @@ public class Game {
     private Camera mainCamera;
     private ArrayList<Egg> eggs;
     private ArrayList<Nest> nests;
-    private Font usedFont;
+    private Font timerFont;
+    private Font detailsFont;
+    private Font placingFont;
 
     public static final int WINDOW_WIDTH = 1200;
     public static final int WINDOW_HEIGHT = 700;
+    private static final double GAME_DURATION = 121.0;
+    private double         timeRemaining = GAME_DURATION;
+
+
 
     public Game() {
         this.root = new Group();
@@ -54,7 +60,9 @@ public class Game {
         this.gc = canvas.getGraphicsContext2D();
         this.bgGc = bg.getGraphicsContext2D();
 
-        this.usedFont = Font.loadFont(getClass().getResourceAsStream("/com/eggame/villager_up/fonts.ttf"), 20);
+        this.timerFont = Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 64);
+        this.placingFont = Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 72);
+        this.detailsFont = Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 24);
 
         this.root.getChildren().add(this.canvas);
         Game.gameScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -81,7 +89,7 @@ public class Game {
         villagers.add(player1);
 
         // Spawn nests and eggs for this round
-        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH, WINDOW_HEIGHT);
+        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH*2, WINDOW_HEIGHT*2);
 
         // Start the game loop
         this.gameLoop = new AnimationTimer() {
@@ -117,9 +125,11 @@ public class Game {
         Logic.update(deltaTime, villagers, eggs, nests, farm, input);
         
         Villager player = villagers.get(0);
+        this.timeRemaining -= deltaTime;
+
         mainCamera.follow(player.getPositionX(), player.getPositionY(), farm);
 
-        if (Logic.isRoundOver(eggs, nests)) {
+        if (Logic.isRoundOver(eggs, nests, timeRemaining)) {
             gameState = GameState.ROUND_OVER;
             showRoundOverPopup();
         }
@@ -159,6 +169,8 @@ public class Game {
 
 
     private void showDetails(){
+        Villager player = villagers.get(0);
+
         gc.setLineWidth(12);
         gc.setFill(Color.web("#C48C47"));
         gc.setStroke(Color.web("#60312B")); // Set outline color
@@ -168,16 +180,16 @@ public class Game {
         // compare which player has the most eggs returned essentially
         String placement = "1st";
         gc.setFill(Color.web("#FFF7D6"));
-        gc.setFont( Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 72));
+        gc.setFont(placingFont);
         gc.strokeText(placement, 80, WINDOW_HEIGHT-32);
         gc.fillText(placement, 80, WINDOW_HEIGHT-32);
 
         // this handles the number of eggs this will change based around the number of eggs returned
         gc.setLineWidth(6);
-        String eggCount = "4";
-        gc.setFont( Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 24));
-        gc.strokeText(eggCount, 172, WINDOW_HEIGHT-32);
-        gc.fillText(eggCount, 172, WINDOW_HEIGHT-32);
+        String returned = String.valueOf(player.getEggsReturned());
+        gc.setFont(detailsFont);
+        gc.strokeText(returned, 172, WINDOW_HEIGHT-32);
+        gc.fillText(returned, 172, WINDOW_HEIGHT-32);
 
         String info = "eggs delivered";
         gc.strokeText(info, 280, WINDOW_HEIGHT-32);
@@ -186,11 +198,11 @@ public class Game {
 
     // Work in progress
     private void showTimer(){
-        // int mins = (int) timeRemaining / 60, secs = (int) timeRemaining % 60;
-        String timeStr = String.format("%d:%02d", 02, 0);
-        gc.setFont( Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 64));
+        int mins = (int) timeRemaining / 60, secs = (int) timeRemaining % 60;
+        String timeStr = String.format("%d:%02d", mins, secs);
+        gc.setFont(timerFont);
         // Color may change depending on the time left
-        gc.setFill(30 < 20 ? Color.web("#bc6262") : Color.web("#FFF7D6"));
+        gc.setFill((mins)*60 + secs < 31 ? Color.web("#bc6262") : Color.web("#FFF7D6"));
         gc.setStroke(Color.web("#60312B")); 
         gc.setLineWidth(8);
         gc.setTextAlign(TextAlignment.CENTER);
