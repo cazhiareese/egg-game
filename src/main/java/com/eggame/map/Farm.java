@@ -105,34 +105,36 @@ public class Farm {
             System.out.println("[DEBUG] Failed to load map_layout.txt: " + e.getMessage());
         }
 
-        // Create upper horizontal walls
-        // for (int i = 0; i < 35; i++) {
-        //     Obstacle wall = new Obstacle(true);
-        //     wall.setImage("wall1.png");
-        //     wall.setPosition(10 + i * (40 + WALL_SPACING), 2);
-        //     horizontalWallUpper.add(wall);
-        // }
 
-        // for (int i = 0; i < 35; i++) {
-        //     Obstacle wall = new Obstacle(true);
-        //     wall.setImage("wall1.png");
-        //     wall.setPosition(10 + i * (40 + WALL_SPACING), 635);
-        //     horizontalWallLower.add(wall);
-        // }
+        for (int i = 0; i < 24; i++) {
+            Obstacle wall = new Obstacle(true);
+            wall.setImage("wall6.png");
+            wall.setPosition(0, 24 + i * (80));
+            verticalWallLeft.add(wall);
+        }
 
-        // for (int i = 0; i < 6; i++) {
-        //     Obstacle wall = new Obstacle(true);
-        //     wall.setImage("wall2.png");
-        //     wall.setPosition(2, 85 + i * (80 + 10));
-        //     verticalWallLeft.add(wall);
-        // }
+        for (int i = 0; i < 24; i++) {
+            Obstacle wall = new Obstacle(true);
+            wall.setImage("wall6.png");
+            wall.setPosition(width-20, 24+ i * (80));
+            verticalWallRight.add(wall);
+        }
 
-        // for (int i = 0; i < 6; i++) {
-        //     Obstacle wall = new Obstacle(true);
-        //     wall.setImage("wall2.png");
-        //     wall.setPosition(1155, 85 + i * (80 + 10));
-        //     verticalWallRight.add(wall);
-        // }
+                // Create upper horizontal walls
+        for (int i = 0; i < 70; i++) {
+            Obstacle wall = new Obstacle(true);
+            wall.setImage("wall5.png");
+            wall.setPosition( i * (68), 16);
+            horizontalWallUpper.add(wall);
+        }
+
+        for (int i = 0; i < 70; i++) {
+            Obstacle wall = new Obstacle(true);
+            wall.setImage("wall1.png");
+            wall.setPosition(10 + i * (40 + WALL_SPACING), height-64);
+            horizontalWallLower.add(wall);
+        }
+
     }
 
     /**
