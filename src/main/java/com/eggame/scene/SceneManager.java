@@ -35,7 +35,30 @@ public class SceneManager {
         game.start(input);
     }
 
-    // public void switchToMainMenu() { ... }
+    public void switchToMainMenu() {
+        if (this.game != null) {
+            this.game.stop();
+            this.game = null;
+        }
+
+        MainMenu menu = new MainMenu(this);
+        Scene menuScene = menu.getScene();
+
+        setScene(menuScene);
+    }
+
+    public void switchToInstructions() {
+        if (this.game != null) {
+            this.game.stop();
+            this.game = null;
+        }
+
+        Instructions instructions = new Instructions(this);
+        Scene instructionsScene = instructions.getScene();
+
+        setScene(instructionsScene);
+    }
+
     // public void switchToGameOver() { ... }
     // public void switchToSplash() { ... }
 
