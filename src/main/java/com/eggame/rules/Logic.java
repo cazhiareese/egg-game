@@ -116,7 +116,7 @@ public class Logic {
 
                     safetyCounter--;
                 }
-
+                egg.setEggIndex(eggs.size());
                 eggs.add(egg);
             }
         }
@@ -124,19 +124,17 @@ public class Logic {
 
     public static void update(double deltaTime, ArrayList<Villager> villagers, ArrayList<Egg> eggs,
             ArrayList<Nest> nests, Farm farm, ArrayList<String> input) {
-        handleInput(deltaTime, villagers, input);
-
-        // Execute interactions first before the collision pushing occurs
-        checkEggPickup(villagers, eggs);
-        checkNestDelivery(villagers, nests);
-
-        // Verify obstacles and push back
-        checkCollisions(deltaTime, villagers, farm, nests);
+        for (Villager player : villagers) {
+            handleInput(deltaTime, player, input); // only relevant for local player
+            checkEggPickup(player, eggs);
+            checkNestDelivery(player, nests);
+            checkCollisions(deltaTime, player, farm, nests);
+        }
     }
 
-    private static void checkCollisions(double deltaTime, ArrayList<Villager> villagers, Farm farm,
+    private static void checkCollisions(double deltaTime, Villager player, Farm farm,
             ArrayList<Nest> nests) {
-        Villager player = villagers.get(0);
+
         Rectangle2D bounds = player.getCollisionBounds(); // <--- Use properly tightened collision box!
         boolean collided = false;
         if (player.getPositionX() < 0 || player.getPositionY() < 0 ||
@@ -193,9 +191,7 @@ public class Logic {
         }
     }
 
-    private static void handleInput(double deltaTime, ArrayList<Villager> villagers, ArrayList<String> input) {
-
-        Villager currentPlayer = villagers.get(0);
+    private static void handleInput(double deltaTime, Villager player, ArrayList<String> input) {
 
         double vx = 0;
         double vy = 0;
@@ -210,45 +206,41 @@ public class Logic {
         if (input.contains("DOWN"))
             vy += speed;
 
-        currentPlayer.setVelocity(vx, vy);
-        currentPlayer.update(deltaTime);
+        player.setVelocity(vx, vy);
+        player.update(deltaTime);
     }
 
-    private static void checkEggPickup(ArrayList<Villager> villagers, ArrayList<Egg> eggs) {
-
-        Villager currentPlayer = villagers.get(0);
+    private static void checkEggPickup(Villager player, ArrayList<Egg> eggs) {
 
         for (Egg currentEgg : eggs) {
-            if (!currentEgg.isCollected() && currentPlayer.intersects(currentEgg.getBounds())) {
-                if (currentPlayer.getEggTray().getNumAllEggs() < 5) {
+            if (!currentEgg.isCollected() && player.intersects(currentEgg.getBounds())) {
+                if (player.getEggTray().getNumAllEggs() < 5) {
                     System.out.println("[DEBUG] Collected egg from nest " + currentEgg.getFromNest() + " Egg count: "
-                            + currentPlayer.getEggTray().getNumAllEggs());
+                            + player.getEggTray().getNumAllEggs());
                     currentEgg.setCollected(true);
-                    currentPlayer.addEggs(currentEgg);
+                    player.addEggs(currentEgg);
                 }
             }
         }
     }
 
-    private static void checkNestDelivery(ArrayList<Villager> villagers, ArrayList<Nest> nests) {
-
-        Villager currentPlayer = villagers.get(0);
+    private static void checkNestDelivery(Villager player, ArrayList<Nest> nests) {
 
         for (Nest nest : nests) {
             // Check if villager is touching this nest
-            if (currentPlayer.intersects(nest.getBounds())) {
+            if (player.intersects(nest.getBounds())) {
                 // Iterate through the villager's tray and deliver matching eggs
-                Iterator<Egg> trayIter = currentPlayer.getEggTray().getEggs().iterator();
+                Iterator<Egg> trayIter = player.getEggTray().getEggs().iterator();
                 while (trayIter.hasNext()) {
                     Egg egg = trayIter.next();
                     if (egg.getFromNest() == nest.getCode()) {
-                        
+
                         trayIter.remove();
                         egg.setReturnedToNest(true);
-                        currentPlayer.addEggsReturned();
+                        player.addEggsReturned();
                         System.out.println("[DEBUG] Delivered egg to nest " + nest.getCode() + ". Total returned: "
-                                + (currentPlayer.getEggsReturned() + 1) + " Egg count: "
-                                + currentPlayer.getEggTray().getNumAllEggs());
+                                + player.getEggsReturned() + " Egg count: "
+                                + player.getEggTray().getNumAllEggs());
                     }
                 }
             }

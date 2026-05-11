@@ -19,9 +19,11 @@ public class Villager extends Sprite {
     private Image imageLeft;
     private Image imageRight;
     private Image imageIdle;
+    private int playerId = -1;
 
     public Villager(String name) {
         this.name = name;
+
         this.eggs = new EggTray(this);
         this.eggsCollected = this.eggs.getNumAllEggs();
         this.eggsReturned = 0;
@@ -118,5 +120,11 @@ public class Villager extends Sprite {
     public void resetEggsReturned() {
         eggsReturned = 0;
         this.eggs.getEggs().clear();
+    }
+
+   public int getPlayerId() { return playerId; }
+
+    public void setPlayerId(int playerId) {
+        this.playerId = playerId;
     }
 }

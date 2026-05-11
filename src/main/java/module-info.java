@@ -16,4 +16,8 @@ module com.eggame {
     exports com.eggame.map;
     exports com.eggame.entities;
     exports com.eggame.rules;
+
+    opens com.eggame.network to javafx.fxml;
+
+    exports com.eggame.network;
 }
