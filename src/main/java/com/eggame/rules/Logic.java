@@ -191,7 +191,7 @@ public class Logic {
         }
     }
 
-    private static void handleInput(double deltaTime, Villager player, ArrayList<String> input) {
+    public static void handleInput(double deltaTime, Villager player, ArrayList<String> input) {
 
         double vx = 0;
         double vy = 0;
@@ -258,6 +258,16 @@ public class Logic {
             }
         }
         return true;
+    }
+
+    public static void serverUpdate(double deltaTime, ArrayList<Villager> villagers,
+            ArrayList<Egg> eggs, ArrayList<Nest> nests, Farm farm) {
+        for (Villager player : villagers) {
+            // No handleInput — server gets positions from network
+            checkEggPickup(player, eggs);
+            checkNestDelivery(player, nests);
+            checkCollisions(deltaTime, player, farm, nests);
+        }
     }
 
     // public static Villager getWinner(ArrayList<Villager> villagers) {

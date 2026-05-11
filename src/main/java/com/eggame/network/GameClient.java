@@ -4,11 +4,12 @@ import java.net.DatagramSocket;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 
-public class GameClient {
+public class GameClient implements Runnable {
     private DatagramSocket socket;
     private InetAddress serverAddress;
     private int serverPort;
     private int playerId = -1;
+    private volatile String latestGameState = null;
 
     public GameClient(String serverIP, int port) throws Exception {
         this.socket = new DatagramSocket();
@@ -25,7 +26,7 @@ public class GameClient {
     }
 
     public String receiveMessage() throws Exception {
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[2048];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         socket.receive(packet);
         return new String(packet.getData(), 0, packet.getLength());
@@ -40,10 +41,36 @@ public class GameClient {
         return playerId;
     }
 
-    // Temporary test main
-    public static void main(String[] args) throws Exception {
-        String name = args.length > 0 ? args[0] : "Player";
-        GameClient client = new GameClient("127.0.0.1", 9876);
-        client.join(name);
+    public void sendPlayerState(double posX, double posY, double velX, double velY) {
+        try {
+            String msg = PacketType.INPUT + "|" + playerId + "|" + posX + "|" + posY + "|" + velX + "|" + velY;
+            sendMessage(msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String getLatestGameState() {
+        String state = latestGameState;
+        latestGameState = null; // consume it
+        return state;
+    }
+
+    public int getPlayerId() {
+        return playerId;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                String message = receiveMessage();
+                if (message.startsWith(PacketType.GAME_STATE)) {
+                    latestGameState = message;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

@@ -7,6 +7,7 @@ import com.eggame.entities.Egg;
 import com.eggame.entities.Nest;
 import com.eggame.entities.Villager;
 import com.eggame.map.Farm;
+import com.eggame.network.GameClient;
 import com.eggame.rules.Logic;
 
 import javafx.animation.AnimationTimer;
@@ -49,9 +50,10 @@ public class Game {
     public static final int WINDOW_WIDTH = 1200;
     public static final int WINDOW_HEIGHT = 700;
     private static final double GAME_DURATION = 121.0;
-    private double         timeRemaining = GAME_DURATION;
+    private double timeRemaining = GAME_DURATION;
 
-
+    private GameClient client;
+    private int localPlayerId;
 
     public Game() {
         this.root = new Group();
@@ -73,25 +75,42 @@ public class Game {
         this.input = input;
 
         // Create the farm and draw the background once
-        this.farm = new Farm(WINDOW_WIDTH*2, WINDOW_HEIGHT*2);
+        this.farm = new Farm(WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
         // farm.renderBackground(bgGc);
 
         // Initialize entity lists
         this.villagers = new ArrayList<Villager>();
         this.eggs = new ArrayList<Egg>();
         this.nests = new ArrayList<Nest>();
-
-        Villager player1 = new Villager("Player 1");
         this.mainCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
-        player1.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
-        mainCamera.follow(player1.getPositionX(), player1.getPositionY(), farm);
+        // Connect to server first to get player ID
+        try {
+            client = new GameClient("127.0.0.1", 9876);
+            localPlayerId = client.join("Player");
+            Thread receiveThread = new Thread(() -> client.run());
+            receiveThread.setDaemon(true);
+            receiveThread.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        villagers.add(player1);
+        // Create local villager at the correct index
+        String playerName = "Player " + (localPlayerId + 1);
+        Villager localVillager = new Villager(playerName);
+        localVillager.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+        localVillager.setPlayerId(localPlayerId);
+
+        // Pad list so this player lands at the right index
+        while (villagers.size() < localPlayerId) {
+            villagers.add(new Villager("Remote"));
+        }
+        villagers.add(localVillager);
+
+        mainCamera.follow(localVillager.getPositionX(), localVillager.getPositionY(), farm);
 
         // Spawn nests and eggs for this round
-        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH*2, WINDOW_HEIGHT*2);
-
+        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
         // Start the game loop
         this.gameLoop = new AnimationTimer() {
             private long lastTime = 0;
@@ -123,16 +142,69 @@ public class Game {
         // Delegate all game logic to Logic
         if (gameState == GameState.ROUND_OVER)
             return;
-        Logic.update(deltaTime, villagers, eggs, nests, farm, input);
-        
-        Villager player = villagers.get(0);
-        this.timeRemaining -= deltaTime;
 
-        mainCamera.follow(player.getPositionX(), player.getPositionY(), farm);
+        Villager localPlayer = villagers.get(localPlayerId);
+        Logic.handleInput(deltaTime, localPlayer, input);
 
+        if (client != null) {
+            client.sendPlayerState(localPlayer.getPositionX(),
+                    localPlayer.getPositionY(),
+                    localPlayer.getVelocityX(),
+                    localPlayer.getVelocityY());
+
+        }
+
+        if (client != null) {
+            String state = client.getLatestGameState();
+            if (state != null) {
+                applyGameState(state);
+            }
+        }
+
+        mainCamera.follow(localPlayer.getPositionX(), localPlayer.getPositionY(), farm);
         if (Logic.isRoundOver(eggs, nests, timeRemaining)) {
             gameState = GameState.ROUND_OVER;
             showRoundOverPopup();
+        }
+
+    }
+
+    private void applyGameState(String state) {
+        String[] parts = state.split("\\|");
+        // Format: GAME_STATE|playerCount|timer|p0x|p0y|p0vx|p0vy|p0returned|...|egg0col|egg0ret|...
+
+        int idx = 1;
+        int playerCount = Integer.parseInt(parts[idx++]);
+        timeRemaining = Double.parseDouble(parts[idx++]);
+
+        // Update each player's state
+        for (int i = 0; i < playerCount; i++) {
+            double px = Double.parseDouble(parts[idx++]);
+            double py = Double.parseDouble(parts[idx++]);
+            double vx = Double.parseDouble(parts[idx++]);
+            double vy = Double.parseDouble(parts[idx++]);
+            int returned = Integer.parseInt(parts[idx++]);
+
+            // Skip local player — we use our own local position to avoid jitter
+            if (i == localPlayerId) continue;
+
+            // Create remote villager if we haven't seen them yet
+            while (villagers.size() <= i) {
+                Villager remote = new Villager("Player " + i);
+                villagers.add(remote);
+            }
+
+            Villager v = villagers.get(i);
+            v.setPosition(px, py);
+            v.setVelocity(vx, vy);
+        }
+
+        // Update egg states from server
+        for (int i = 0; i < eggs.size() && idx + 1 < parts.length; i++) {
+            boolean collected = parts[idx++].equals("1");
+            boolean returned = parts[idx++].equals("1");
+            eggs.get(i).setCollected(collected);
+            eggs.get(i).setReturnedToNest(returned);
         }
     }
 
@@ -144,7 +216,6 @@ public class Game {
         gc.translate(-mainCamera.getX(), -mainCamera.getY());
 
         farm.renderBackground(gc); // on the main gc, inside the camera transform
-
 
         // Draw nests
         for (Nest nest : nests) {
@@ -167,17 +238,17 @@ public class Game {
         this.showTray();
     }
 
-    private void showTray(){
-        Villager player = villagers.get(0);
-        
-        double trayWidth = 260; 
+    private void showTray() {
+        Villager player = villagers.get(localPlayerId);
+
+        double trayWidth = 260;
         double startX = WINDOW_WIDTH - trayWidth - 12;
 
         gc.setLineWidth(12);
         gc.setFill(Color.web("#C48C47"));
         gc.setStroke(Color.web("#60312B")); // Set outline color
-        gc.strokeRoundRect(startX, WINDOW_HEIGHT-60, trayWidth, 48, 32, 32);
-        gc.fillRoundRect(startX, WINDOW_HEIGHT-60,  trayWidth, 48, 32, 32);
+        gc.strokeRoundRect(startX, WINDOW_HEIGHT - 60, trayWidth, 48, 32, 32);
+        gc.fillRoundRect(startX, WINDOW_HEIGHT - 60, trayWidth, 48, 32, 32);
 
         ArrayList<Egg> trayEggs = player.getEggTray().getEggs();
         for (int i = 0; i < trayEggs.size(); i++) {
@@ -189,42 +260,43 @@ public class Game {
         }
     }
 
-    private void showDetails(){
-        Villager player = villagers.get(0);
+    private void showDetails() {
+        Villager player = villagers.get(localPlayerId);
 
         gc.setLineWidth(12);
         gc.setFill(Color.web("#C48C47"));
         gc.setStroke(Color.web("#60312B")); // Set outline color
-        gc.strokeRoundRect(12, WINDOW_HEIGHT-60, 380, 48, 32, 32);
-        gc.fillRoundRect(12, WINDOW_HEIGHT-60,  380, 48, 32, 32);
-        
+        gc.strokeRoundRect(12, WINDOW_HEIGHT - 60, 380, 48, 32, 32);
+        gc.fillRoundRect(12, WINDOW_HEIGHT - 60, 380, 48, 32, 32);
+
         // compare which player has the most eggs returned essentially
         String placement = "1st";
         gc.setFill(Color.web("#FFF7D6"));
         gc.setFont(placingFont);
-        gc.strokeText(placement, 80, WINDOW_HEIGHT-32);
-        gc.fillText(placement, 80, WINDOW_HEIGHT-32);
+        gc.strokeText(placement, 80, WINDOW_HEIGHT - 32);
+        gc.fillText(placement, 80, WINDOW_HEIGHT - 32);
 
-        // this handles the number of eggs this will change based around the number of eggs returned
+        // this handles the number of eggs this will change based around the number of
+        // eggs returned
         gc.setLineWidth(6);
         String returned = String.valueOf(player.getEggsReturned());
         gc.setFont(detailsFont);
-        gc.strokeText(returned, 172, WINDOW_HEIGHT-32);
-        gc.fillText(returned, 172, WINDOW_HEIGHT-32);
+        gc.strokeText(returned, 172, WINDOW_HEIGHT - 32);
+        gc.fillText(returned, 172, WINDOW_HEIGHT - 32);
 
         String info = "eggs delivered";
-        gc.strokeText(info, 280, WINDOW_HEIGHT-32);
-        gc.fillText(info, 280, WINDOW_HEIGHT-32);
+        gc.strokeText(info, 280, WINDOW_HEIGHT - 32);
+        gc.fillText(info, 280, WINDOW_HEIGHT - 32);
     }
 
     // Work in progress
-    private void showTimer(){
+    private void showTimer() {
         int mins = (int) timeRemaining / 60, secs = (int) timeRemaining % 60;
         String timeStr = String.format("%d:%02d", mins, secs);
         gc.setFont(timerFont);
         // Color may change depending on the time left
-        gc.setFill((mins)*60 + secs < 31 ? Color.web("#bc6262") : Color.web("#FFF7D6"));
-        gc.setStroke(Color.web("#60312B")); 
+        gc.setFill((mins) * 60 + secs < 31 ? Color.web("#bc6262") : Color.web("#FFF7D6"));
+        gc.setStroke(Color.web("#60312B"));
         gc.setLineWidth(8);
         gc.setTextAlign(TextAlignment.CENTER);
         gc.strokeText(timeStr, WINDOW_WIDTH / 2.0, 72);
@@ -233,7 +305,7 @@ public class Game {
     }
 
     private void showRoundOverPopup() {
-        Villager player = villagers.get(0);
+        Villager player = villagers.get(localPlayerId);
         int returned = player.getEggsReturned();
         int total = eggs.size(); // The world list no longer gets depleted
 
@@ -260,9 +332,14 @@ public class Game {
         input.clear();
 
         villagers.clear();
-        Villager player1 = new Villager("Player 1");
-        player1.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
-        villagers.add(player1);
+        String playerName = "Player " + (localPlayerId + 1);
+        Villager resetPlayer = new Villager(playerName);
+        resetPlayer.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+        resetPlayer.setPlayerId(localPlayerId);
+        while (villagers.size() < localPlayerId) {
+            villagers.add(new Villager("Remote"));
+        }
+        villagers.add(resetPlayer);
 
         eggs.clear();
         nests.clear();
