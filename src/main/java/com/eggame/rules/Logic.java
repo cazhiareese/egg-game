@@ -2,6 +2,7 @@ package com.eggame.rules;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
 
 import com.eggame.entities.Egg;
 import com.eggame.entities.Nest;
@@ -42,6 +43,9 @@ public class Logic {
         nest5.setImage("nest5.png");
         nests.add(nest5);
 
+        // Use a fixed seed so server and all clients generate identical egg positions
+        Random rand = new Random(42);
+
         for (int i = 0; i < 5; i++) {
             int numEggs = 4; // 5 nests * 4 eggs = exactly 20 eggs total
             for (int j = 0; j < numEggs; j++) {
@@ -53,8 +57,8 @@ public class Logic {
                 int safetyCounter = 500;
 
                 while (!validLaunch && safetyCounter > 0) {
-                    int eggX = (int) (Math.random() * (worldWidth - 100)) + 50;
-                    int eggY = (int) (Math.random() * (worldHeight - 100)) + 50;
+                    int eggX = (int) (rand.nextDouble() * (worldWidth - 100)) + 50;
+                    int eggY = (int) (rand.nextDouble() * (worldHeight - 100)) + 50;
                     egg.setPosition(eggX, eggY);
 
                     Rectangle2D bounds = egg.getBounds();
@@ -132,7 +136,7 @@ public class Logic {
         }
     }
 
-    private static void checkCollisions(double deltaTime, Villager player, Farm farm,
+    public static void checkCollisions(double deltaTime, Villager player, Farm farm,
             ArrayList<Nest> nests) {
 
         Rectangle2D bounds = player.getCollisionBounds(); // <--- Use properly tightened collision box!

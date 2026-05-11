@@ -146,6 +146,9 @@ public class Game {
         Villager localPlayer = villagers.get(localPlayerId);
         Logic.handleInput(deltaTime, localPlayer, input);
 
+        // Run collision detection locally so walls feel responsive
+        Logic.checkCollisions(deltaTime, localPlayer, farm, nests);
+
         if (client != null) {
             client.sendPlayerState(localPlayer.getPositionX(),
                     localPlayer.getPositionY(),
