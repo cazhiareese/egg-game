@@ -214,7 +214,7 @@ public class Logic {
         player.update(deltaTime);
     }
 
-    private static void checkEggPickup(Villager player, ArrayList<Egg> eggs) {
+    public static void checkEggPickup(Villager player, ArrayList<Egg> eggs) {
 
         for (Egg currentEgg : eggs) {
             if (!currentEgg.isCollected() && player.intersects(currentEgg.getBounds())) {
@@ -228,7 +228,7 @@ public class Logic {
         }
     }
 
-    private static void checkNestDelivery(Villager player, ArrayList<Nest> nests) {
+    public static void checkNestDelivery(Villager player, ArrayList<Nest> nests) {
 
         for (Nest nest : nests) {
             // Check if villager is touching this nest

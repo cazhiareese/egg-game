@@ -149,6 +149,12 @@ public class Game {
         // Run collision detection locally so walls feel responsive
         Logic.checkCollisions(deltaTime, localPlayer, farm, nests);
 
+        // Run egg pickup locally so tray UI updates immediately
+        Logic.checkEggPickup(localPlayer, eggs);
+
+        // Run nest delivery locally so eggs can be returned
+        Logic.checkNestDelivery(localPlayer, nests);
+
         if (client != null) {
             client.sendPlayerState(localPlayer.getPositionX(),
                     localPlayer.getPositionY(),
@@ -202,12 +208,13 @@ public class Game {
             v.setVelocity(vx, vy);
         }
 
-        // Update egg states from server
+        // Update egg states from server — only upgrade, never downgrade
+        // (prevents stale server broadcasts from undoing local pickups)
         for (int i = 0; i < eggs.size() && idx + 1 < parts.length; i++) {
             boolean collected = parts[idx++].equals("1");
             boolean returned = parts[idx++].equals("1");
-            eggs.get(i).setCollected(collected);
-            eggs.get(i).setReturnedToNest(returned);
+            if (collected) eggs.get(i).setCollected(true);
+            if (returned) eggs.get(i).setReturnedToNest(true);
         }
     }
 
