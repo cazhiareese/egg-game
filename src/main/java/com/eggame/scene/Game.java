@@ -16,6 +16,7 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Alert;
+import javafx.scene.image.Image;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.paint.Color;
@@ -163,10 +164,30 @@ public class Game {
         gc.restore(); // reset transform back to identity for next frame
         this.showTimer();
         this.showDetails();
-
-
+        this.showTray();
     }
 
+    private void showTray(){
+        Villager player = villagers.get(0);
+        
+        double trayWidth = 260; 
+        double startX = WINDOW_WIDTH - trayWidth - 12;
+
+        gc.setLineWidth(12);
+        gc.setFill(Color.web("#C48C47"));
+        gc.setStroke(Color.web("#60312B")); // Set outline color
+        gc.strokeRoundRect(startX, WINDOW_HEIGHT-60, trayWidth, 48, 32, 32);
+        gc.fillRoundRect(startX, WINDOW_HEIGHT-60,  trayWidth, 48, 32, 32);
+
+        ArrayList<Egg> trayEggs = player.getEggTray().getEggs();
+        for (int i = 0; i < trayEggs.size(); i++) {
+            Image eggImage = trayEggs.get(i).getImage();
+            if (eggImage != null) {
+                // draw each egg with a little bit of spacing
+                gc.drawImage(eggImage, startX + 27 + (i * 44), WINDOW_HEIGHT - 51, 30, 30);
+            }
+        }
+    }
 
     private void showDetails(){
         Villager player = villagers.get(0);

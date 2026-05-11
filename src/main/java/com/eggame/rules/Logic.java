@@ -102,10 +102,11 @@ public class Logic {
                                 hitObstacle = true;
                     }
 
-                   for (Egg placed : eggs) {
+                    for (Egg placed : eggs) {
                         if (!hitObstacle && Math.sqrt(
                                 Math.pow(eggX - (placed.getPositionX() + placed.getBounds().getWidth() / 2), 2) +
-                                Math.pow(eggY - (placed.getPositionY() + placed.getBounds().getHeight() / 2), 2)) < 150) {
+                                        Math.pow(eggY - (placed.getPositionY() + placed.getBounds().getHeight() / 2),
+                                                2)) < 150) {
                             hitObstacle = true;
                         }
                     }
@@ -219,9 +220,12 @@ public class Logic {
 
         for (Egg currentEgg : eggs) {
             if (!currentEgg.isCollected() && currentPlayer.intersects(currentEgg.getBounds())) {
-                System.out.println("[DEBUG] Collected egg from nest " + currentEgg.getFromNest());
-                currentEgg.setCollected(true);
-                currentPlayer.addEggs(currentEgg);
+                if (currentPlayer.getEggTray().getNumAllEggs() < 5) {
+                    System.out.println("[DEBUG] Collected egg from nest " + currentEgg.getFromNest() + " Egg count: "
+                            + currentPlayer.getEggTray().getNumAllEggs());
+                    currentEgg.setCollected(true);
+                    currentPlayer.addEggs(currentEgg);
+                }
             }
         }
     }
@@ -238,19 +242,21 @@ public class Logic {
                 while (trayIter.hasNext()) {
                     Egg egg = trayIter.next();
                     if (egg.getFromNest() == nest.getCode()) {
-                        System.out.println("[DEBUG] Delivered egg to nest " + nest.getCode() + ". Total returned: "
-                                + (currentPlayer.getEggsReturned() + 1));
+                        
                         trayIter.remove();
                         egg.setReturnedToNest(true);
                         currentPlayer.addEggsReturned();
+                        System.out.println("[DEBUG] Delivered egg to nest " + nest.getCode() + ". Total returned: "
+                                + (currentPlayer.getEggsReturned() + 1) + " Egg count: "
+                                + currentPlayer.getEggTray().getNumAllEggs());
                     }
                 }
             }
         }
     }
 
-    public static boolean isRoundOver(ArrayList<Egg> eggs, ArrayList<Nest> nests, double remainingTime ) {
-        if(remainingTime < 0){
+    public static boolean isRoundOver(ArrayList<Egg> eggs, ArrayList<Nest> nests, double remainingTime) {
+        if (remainingTime < 0) {
             return true;
         }
 
@@ -261,8 +267,6 @@ public class Logic {
         }
         return true;
     }
-
-
 
     // public static Villager getWinner(ArrayList<Villager> villagers) {
     // // TODO: Compare egg counts and return the winner (for implementatio in

@@ -30,6 +30,10 @@ public class Sprite {
         }
     }
 
+    public Image getImage() {
+        return image;
+    }
+
     // overload set image by passing file name (loads from classpath)
     public void setImage(String filename) {
         try {
