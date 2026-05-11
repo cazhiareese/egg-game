@@ -206,6 +206,7 @@ public class Game {
             Villager v = villagers.get(i);
             v.setPosition(px, py);
             v.setVelocity(vx, vy);
+            v.setEggsReturned(returned);
         }
 
         // Update egg states from server — only upgrade, never downgrade
@@ -279,8 +280,21 @@ public class Game {
         gc.strokeRoundRect(12, WINDOW_HEIGHT - 60, 380, 48, 32, 32);
         gc.fillRoundRect(12, WINDOW_HEIGHT - 60, 380, 48, 32, 32);
 
-        // compare which player has the most eggs returned essentially
-        String placement = "1st";
+        // Calculate placement based on eggs returned vs all players
+        int myReturned = player.getEggsReturned();
+        int rank = 1;
+        for (Villager v : villagers) {
+            if (v != player && v.getEggsReturned() > myReturned) {
+                rank++;
+            }
+        }
+        String placement;
+        switch (rank) {
+            case 1: placement = "1st"; break;
+            case 2: placement = "2nd"; break;
+            case 3: placement = "3rd"; break;
+            default: placement = rank + "th"; break;
+        }
         gc.setFill(Color.web("#FFF7D6"));
         gc.setFont(placingFont);
         gc.strokeText(placement, 80, WINDOW_HEIGHT - 32);
@@ -315,15 +329,41 @@ public class Game {
     }
 
     private void showRoundOverPopup() {
-        Villager player = villagers.get(localPlayerId);
-        int returned = player.getEggsReturned();
-        int total = eggs.size(); // The world list no longer gets depleted
+        Villager localPlayer = villagers.get(localPlayerId);
+        int myReturned = localPlayer.getEggsReturned();
+
+        // Find the winner (player with most eggs returned)
+        Villager winner = villagers.get(0);
+        for (Villager v : villagers) {
+            if (v.getEggsReturned() > winner.getEggsReturned()) {
+                winner = v;
+            }
+        }
+
+        boolean iWon = (winner == localPlayer);
+        String headerText = iWon ? "You Win!" : winner.getName() + " Wins!";
+
+        // Build scoreboard
+        StringBuilder sb = new StringBuilder();
+        sb.append("Your Eggs Returned: ").append(myReturned).append("\n");
+        if (villagers.size() > 1) {
+            sb.append("\n--- Scoreboard ---\n");
+            // Sort by eggs returned (descending) for display
+            ArrayList<Villager> sorted = new ArrayList<>(villagers);
+            sorted.sort((a, b) -> b.getEggsReturned() - a.getEggsReturned());
+            for (int i = 0; i < sorted.size(); i++) {
+                Villager v = sorted.get(i);
+                String label = (v == localPlayer) ? v.getName() + " (You)" : v.getName();
+                sb.append((i + 1)).append(". ").append(label)
+                  .append(" — ").append(v.getEggsReturned()).append(" eggs\n");
+            }
+        }
 
         Platform.runLater(() -> {
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle("Results");
-            alert.setHeaderText("Round Over!");
-            alert.setContentText("Eggs Returned: " + returned + " / " + total);
+            alert.setHeaderText(headerText);
+            alert.setContentText(sb.toString());
 
             ButtonType playAgainButton = new ButtonType("Play Again");
             alert.getButtonTypes().setAll(playAgainButton);
