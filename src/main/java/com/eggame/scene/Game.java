@@ -1,6 +1,7 @@
 package com.eggame.scene;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 import com.eggame.entities.Camera;
 import com.eggame.entities.Egg;
@@ -20,6 +21,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
@@ -86,7 +88,12 @@ public class Game {
 
         // Connect to server first to get player ID
         try {
-            client = new GameClient("127.0.0.1", 9876);
+            TextInputDialog dialog = new TextInputDialog("127.0.0.1");
+            dialog.setTitle("Connect to Server");
+            dialog.setHeaderText("Enter the host's IP address:");
+            Optional<String> result = dialog.showAndWait();
+            String serverIP = result.orElse("127.0.0.1");
+            client = new GameClient(serverIP, 9876);
             localPlayerId = client.join("Player");
             Thread receiveThread = new Thread(() -> client.run());
             receiveThread.setDaemon(true);
@@ -180,7 +187,8 @@ public class Game {
 
     private void applyGameState(String state) {
         String[] parts = state.split("\\|");
-        // Format: GAME_STATE|playerCount|timer|p0x|p0y|p0vx|p0vy|p0returned|...|egg0col|egg0ret|...
+        // Format:
+        // GAME_STATE|playerCount|timer|p0x|p0y|p0vx|p0vy|p0returned|...|egg0col|egg0ret|...
 
         int idx = 1;
         int playerCount = Integer.parseInt(parts[idx++]);
@@ -195,7 +203,8 @@ public class Game {
             int returned = Integer.parseInt(parts[idx++]);
 
             // Skip local player — we use our own local position to avoid jitter
-            if (i == localPlayerId) continue;
+            if (i == localPlayerId)
+                continue;
 
             // Create remote villager if we haven't seen them yet
             while (villagers.size() <= i) {
@@ -214,8 +223,10 @@ public class Game {
         for (int i = 0; i < eggs.size() && idx + 1 < parts.length; i++) {
             boolean collected = parts[idx++].equals("1");
             boolean returned = parts[idx++].equals("1");
-            if (collected) eggs.get(i).setCollected(true);
-            if (returned) eggs.get(i).setReturnedToNest(true);
+            if (collected)
+                eggs.get(i).setCollected(true);
+            if (returned)
+                eggs.get(i).setReturnedToNest(true);
         }
     }
 
@@ -290,10 +301,18 @@ public class Game {
         }
         String placement;
         switch (rank) {
-            case 1: placement = "1st"; break;
-            case 2: placement = "2nd"; break;
-            case 3: placement = "3rd"; break;
-            default: placement = rank + "th"; break;
+            case 1:
+                placement = "1st";
+                break;
+            case 2:
+                placement = "2nd";
+                break;
+            case 3:
+                placement = "3rd";
+                break;
+            default:
+                placement = rank + "th";
+                break;
         }
         gc.setFill(Color.web("#FFF7D6"));
         gc.setFont(placingFont);
@@ -355,7 +374,7 @@ public class Game {
                 Villager v = sorted.get(i);
                 String label = (v == localPlayer) ? v.getName() + " (You)" : v.getName();
                 sb.append((i + 1)).append(". ").append(label)
-                  .append(" — ").append(v.getEggsReturned()).append(" eggs\n");
+                        .append(" — ").append(v.getEggsReturned()).append(" eggs\n");
             }
         }
 

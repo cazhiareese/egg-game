@@ -99,12 +99,6 @@ public class GameServer {
     }
 
     private void gameLoop() {
-        // TODO: Run at ~20 ticks/sec
-        // 1. For each villager: checkEggPickup, checkNestDelivery, checkCollisions
-        // 2. Decrement timer
-        // 3. Build GAME_STATE string
-        // 4. Broadcast to all clients
-        // 5. Sleep for TICK_RATE ms
 
         while (timeRemaining > 0) {
             double deltaTime = 0.05;
@@ -124,7 +118,6 @@ public class GameServer {
     }
 
     private void broadcastGameState() throws Exception {
-        // TODO: Build the state string and send to all clients
         StringBuilder sb = new StringBuilder();
 
         sb.append(PacketType.GAME_STATE).append("|");
