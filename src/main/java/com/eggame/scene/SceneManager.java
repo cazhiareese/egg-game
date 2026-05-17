@@ -13,10 +13,12 @@ public class SceneManager {
     private final ArrayList<String> input;
 
     private Game game;
+    private final AvatarState avatarState;
 
     public SceneManager(Stage stage) {
         this.stage = stage;
         this.input = new ArrayList<>();
+        this.avatarState = new AvatarState();
     }
 
     public void switchToGame() {
@@ -32,7 +34,7 @@ public class SceneManager {
         bindInput(gameScene);
 
         // Start the game loop with shared input
-        game.start(input);
+        game.start(input, avatarState);
     }
 
     public void switchToMainMenu() {
@@ -59,8 +61,24 @@ public class SceneManager {
         setScene(instructionsScene);
     }
 
+    public void switchToCustomize() {
+        if (this.game != null) {
+            this.game.stop();
+            this.game = null;
+        }
+
+        CustomizeMenu customizeMenu = new CustomizeMenu(this);
+        Scene customizeScene = customizeMenu.getScene();
+
+        setScene(customizeScene);
+    }
+
     // public void switchToGameOver() { ... }
     // public void switchToSplash() { ... }
+
+    public AvatarState getAvatarState() {
+        return avatarState;
+    }
 
     public ArrayList<String> getInput() {
         return input;
