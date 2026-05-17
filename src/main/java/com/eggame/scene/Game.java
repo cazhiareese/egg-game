@@ -56,6 +56,7 @@ public class Game {
 
     private GameClient client;
     private int localPlayerId;
+    private AvatarState localAvatarState;
 
     public Game() {
         this.root = new Group();
@@ -73,8 +74,9 @@ public class Game {
         Game.gameScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
-    public void start(ArrayList<String> input) {
+    public void start(ArrayList<String> input, AvatarState avatarState) {
         this.input = input;
+        this.localAvatarState = avatarState;
 
         // Create the farm and draw the background once
         this.farm = new Farm(WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
@@ -107,6 +109,9 @@ public class Game {
         Villager localVillager = new Villager(playerName);
         localVillager.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
         localVillager.setPlayerId(localPlayerId);
+        if (localAvatarState != null) {
+            localVillager.setAvatar(localAvatarState.getHeadIndex(), localAvatarState.getHatIndex());
+        }
 
         // Pad list so this player lands at the right index
         while (villagers.size() < localPlayerId) {
@@ -166,8 +171,9 @@ public class Game {
             client.sendPlayerState(localPlayer.getPositionX(),
                     localPlayer.getPositionY(),
                     localPlayer.getVelocityX(),
-                    localPlayer.getVelocityY());
-
+                    localPlayer.getVelocityY(),
+                    localPlayer.getHeadIndex(),
+                    localPlayer.getHatIndex());
         }
 
         if (client != null) {
@@ -201,6 +207,8 @@ public class Game {
             double vx = Double.parseDouble(parts[idx++]);
             double vy = Double.parseDouble(parts[idx++]);
             int returned = Integer.parseInt(parts[idx++]);
+            int headIdx = Integer.parseInt(parts[idx++]);
+            int hatIdx = Integer.parseInt(parts[idx++]);
 
             // Skip local player — we use our own local position to avoid jitter
             if (i == localPlayerId)
@@ -213,9 +221,17 @@ public class Game {
             }
 
             Villager v = villagers.get(i);
+            if ("Remote".equals(v.getName())) {
+                v = new Villager("Player " + i);
+                villagers.set(i, v);
+            }
+
             v.setPosition(px, py);
             v.setVelocity(vx, vy);
             v.setEggsReturned(returned);
+            if (v.getHeadIndex() != headIdx || v.getHatIndex() != hatIdx) {
+                v.setAvatar(headIdx, hatIdx);
+            }
         }
 
         // Update egg states from server — only upgrade, never downgrade
@@ -251,6 +267,9 @@ public class Game {
 
         // Draw villagers
         for (Villager villager : villagers) {
+            if ("Remote".equals(villager.getName())) {
+                continue;
+            }
             villager.render(gc);
         }
 
@@ -405,6 +424,11 @@ public class Game {
         Villager resetPlayer = new Villager(playerName);
         resetPlayer.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
         resetPlayer.setPlayerId(localPlayerId);
+
+        // set customized avatar for this player
+        if (localAvatarState != null) {
+            resetPlayer.setAvatar(localAvatarState.getHeadIndex(), localAvatarState.getHatIndex());
+        }
         while (villagers.size() < localPlayerId) {
             villagers.add(new Villager("Remote"));
         }
