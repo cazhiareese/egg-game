@@ -21,6 +21,12 @@ public class Villager extends Sprite {
     private Image imageIdle;
     private int playerId = -1;
 
+    private int headIndex = -1;
+    private int hatIndex = -1;
+
+    private Image headImage;
+    private Image hatImage;
+
     public Villager(String name) {
         this.name = name;
 
@@ -70,7 +76,21 @@ public class Villager extends Sprite {
     }
 
     public void render(GraphicsContext gc) {
-        super.render(gc);
+        if (headImage == null && hatImage == null) {
+            super.render(gc);
+        } else {
+            // draw the customized avatar
+            if (headImage != null) {
+                gc.drawImage(headImage, getPositionX(), getPositionY() + 10, width, height);
+            }
+            if (hatImage != null) {
+                double hatWidth = width * 0.9;
+                double hatHeight = height * 0.5;
+                gc.drawImage(hatImage, getPositionX() + (width - hatWidth) / 2, getPositionY() - hatHeight + 30,
+                        hatWidth,
+                        hatHeight);
+            }
+        }
     }
 
     public void setPosition(double x, double y) {
@@ -126,9 +146,43 @@ public class Villager extends Sprite {
         this.eggs.getEggs().clear();
     }
 
-   public int getPlayerId() { return playerId; }
+    public int getPlayerId() {
+        return playerId;
+    }
 
     public void setPlayerId(int playerId) {
         this.playerId = playerId;
+    }
+
+    public int getHeadIndex() {
+        return headIndex;
+    }
+
+    public int getHatIndex() {
+        return hatIndex;
+    }
+
+    // set avatar customization from customization menu
+    public void setAvatar(int headIdx, int hatIdx) {
+        this.headIndex = headIdx;
+        this.hatIndex = hatIdx;
+
+        try {
+            var headStream = getClass().getResourceAsStream("/com/eggame/customization/head_" + headIdx + ".png");
+            if (headStream != null) {
+                this.headImage = new Image(headStream);
+            }
+        } catch (Throwable e) {
+
+        }
+
+        try {
+            var hatStream = getClass().getResourceAsStream("/com/eggame/customization/hat_" + hatIdx + ".png");
+            if (hatStream != null) {
+                this.hatImage = new Image(hatStream);
+            }
+        } catch (Throwable e) {
+
+        }
     }
 }
