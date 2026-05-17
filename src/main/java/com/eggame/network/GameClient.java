@@ -41,9 +41,9 @@ public class GameClient implements Runnable {
         return playerId;
     }
 
-    public void sendPlayerState(double posX, double posY, double velX, double velY) {
+    public void sendPlayerState(double posX, double posY, double velX, double velY, int headIndex, int hatIndex) {
         try {
-            String msg = PacketType.INPUT + "|" + playerId + "|" + posX + "|" + posY + "|" + velX + "|" + velY;
+            String msg = PacketType.INPUT + "|" + playerId + "|" + posX + "|" + posY + "|" + velX + "|" + velY + "|" + headIndex + "|" + hatIndex;
             sendMessage(msg);
         } catch (Exception e) {
             e.printStackTrace();

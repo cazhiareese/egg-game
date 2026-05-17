@@ -96,6 +96,15 @@ public class GameServer {
         Villager v = villagers.get(playerId);
         v.setPosition(posX, posY);
         v.setVelocity(velX, velY);
+
+        // update avatar based on customized avatar index (head and hat)
+        if (parts.length > 7) {
+            int headIdx = Integer.parseInt(parts[6]);
+            int hatIdx = Integer.parseInt(parts[7]);
+            if (v.getHeadIndex() != headIdx || v.getHatIndex() != hatIdx) {
+                v.setAvatar(headIdx, hatIdx);
+            }
+        }
     }
 
     private void gameLoop() {
@@ -129,7 +138,9 @@ public class GameServer {
                     .append("|").append(v.getPositionY())
                     .append("|").append(v.getVelocityX())
                     .append("|").append(v.getVelocityY())
-                    .append("|").append(v.getEggsReturned());
+                    .append("|").append(v.getEggsReturned())
+                    .append("|").append(v.getHeadIndex())
+                    .append("|").append(v.getHatIndex());
         }
 
         for (Egg egg : eggs) {
