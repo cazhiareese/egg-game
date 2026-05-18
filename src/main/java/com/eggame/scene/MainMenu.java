@@ -1,6 +1,7 @@
 package com.eggame.scene;
 
 import javafx.animation.TranslateTransition;
+import javafx.animation.ScaleTransition;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -194,8 +195,21 @@ public class MainMenu {
         String hoverStyle = "-fx-background-color: #D69D58; -fx-background-radius: 15; -fx-border-color: #60312B; -fx-border-radius: 15; -fx-border-width: 4;";
 
         btn.setStyle(defaultStyle);
-        btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
-        btn.setOnMouseExited(e -> btn.setStyle(defaultStyle));
+        btn.setOnMouseEntered(e -> {
+            btn.setStyle(hoverStyle);
+            ScaleTransition st = new ScaleTransition(Duration.millis(100), btn);
+            st.setToX(1.05);
+            st.setToY(1.05);
+            st.play();
+        });
+
+        btn.setOnMouseExited(e -> {
+            btn.setStyle(defaultStyle);
+            ScaleTransition st = new ScaleTransition(Duration.millis(100), btn);
+            st.setToX(1.0);
+            st.setToY(1.0);
+            st.play();
+        });
 
         return btn;
     }
