@@ -171,8 +171,6 @@ public class GameServer {
     private void gameLoop() {
 
         while (true) {
-            // Prune stale clients before ticking
-            pruneStaleClients();
 
             if (timeRemaining > 0) {
                 double deltaTime = 0.05;
@@ -189,39 +187,6 @@ public class GameServer {
                 e.printStackTrace();
             }
         }
-    }
-
-    private void pruneStaleClients() {
-        long now = System.currentTimeMillis();
-        Iterator<Map.Entry<Integer, Long>> it = lastHeard.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, Long> entry = it.next();
-            if (now - entry.getValue() > CLIENT_TIMEOUT_MS) {
-                int id = entry.getKey();
-                it.remove();
-                clients.remove(id);
-                System.out.println("Player " + id + " timed out");
-            }
-        }
-
-        // When every client has disconnected, reset the whole server
-        if (clients.isEmpty() && nextPlayerId > 0) {
-            resetServer();
-        }
-    }
-
-    private void resetServer() {
-        System.out.println("All clients disconnected — resetting server state");
-        nextPlayerId = 0;
-        villagers.clear();
-        eggs.clear();
-        nests.clear();
-        lastHeard.clear();
-        timeRemaining = GAME_DURATION;
-
-        // Re-initialise world
-        Logic.initRound(nests, eggs, farm, WORLD_WIDTH, WORLD_HEIGHT);
-        System.out.println("World re-initialized: " + eggs.size() + " eggs, " + nests.size() + " nests");
     }
 
     private void broadcastGameState() throws Exception {
