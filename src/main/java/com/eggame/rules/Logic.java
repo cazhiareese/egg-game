@@ -136,9 +136,6 @@ public class Logic {
         }
     }
 
-    /**
-     * Maximum pixels a player can be pushed per frame by player-player collision.
-     */
     private static final double MAX_PUSH_PER_FRAME = 3.0;
 
     public static void checkPlayerCollisions(Villager player, ArrayList<Villager> villagers) {

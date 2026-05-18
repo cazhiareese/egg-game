@@ -58,10 +58,6 @@ public class Nest extends Sprite {
         updateImage();
     }
 
-    /**
-     * Swaps the nest sprite to match the current number of returned eggs.
-     * Files are named nest{code}-{returned}.png (e.g. nest1-0.png, nest3-4.png).
-     */
     private void updateImage() {
         String filename = "nest" + code + "-" + eggsReturned + ".png";
         try {
