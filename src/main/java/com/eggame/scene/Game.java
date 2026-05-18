@@ -348,10 +348,15 @@ public class Game {
         gc.setFont(detailsFont);
         gc.strokeText(returned, 172, WINDOW_HEIGHT - 32);
         gc.fillText(returned, 172, WINDOW_HEIGHT - 32);
-
-        String info = "eggs delivered";
-        gc.strokeText(info, 280, WINDOW_HEIGHT - 32);
-        gc.fillText(info, 280, WINDOW_HEIGHT - 32);
+        if (player.getEggsReturned() > 1 || player.getEggsReturned() == 0) {
+            String info = "eggs delivered";
+            gc.strokeText(info, 280, WINDOW_HEIGHT - 32);
+            gc.fillText(info, 280, WINDOW_HEIGHT - 32);
+        } else {
+            String info = "egg delivered";
+            gc.strokeText(info, 280, WINDOW_HEIGHT - 32);
+            gc.fillText(info, 280, WINDOW_HEIGHT - 32);
+        }
     }
 
     // Work in progress
