@@ -136,6 +136,46 @@ public class Logic {
         }
     }
 
+    public static void checkPlayerCollisions(Villager player, ArrayList<Villager> villagers) {
+        Rectangle2D myBounds = player.getCollisionBounds();
+
+        for (Villager other : villagers) {
+            // Skip self and placeholder "Remote" entries that haven't connected yet
+            if (other == player || "Remote".equals(other.getName())) {
+                continue;
+            }
+
+            Rectangle2D otherBounds = other.getCollisionBounds();
+
+            if (!myBounds.intersects(otherBounds)) {
+                continue;
+            }
+
+            // Compute overlap on each axis
+            double overlapLeft = (myBounds.getMinX() + myBounds.getWidth()) - otherBounds.getMinX();
+            double overlapRight = (otherBounds.getMinX() + otherBounds.getWidth()) - myBounds.getMinX();
+            double overlapTop = (myBounds.getMinY() + myBounds.getHeight()) - otherBounds.getMinY();
+            double overlapBottom = (otherBounds.getMinY() + otherBounds.getHeight()) - myBounds.getMinY();
+
+            // Resolve along the axis of minimum penetration
+            double resolveX = (overlapLeft < overlapRight) ? -overlapLeft : overlapRight;
+            double resolveY = (overlapTop < overlapBottom) ? -overlapTop : overlapBottom;
+
+            if (Math.abs(resolveX) <= Math.abs(resolveY)) {
+                // Push out horizontally and cancel horizontal velocity
+                player.setPosition(player.getPositionX() + resolveX, player.getPositionY());
+                player.setVelocity(0, player.getVelocityY());
+            } else {
+                // Push out vertically and cancel vertical velocity
+                player.setPosition(player.getPositionX(), player.getPositionY() + resolveY);
+                player.setVelocity(player.getVelocityX(), 0);
+            }
+
+            // Recalculate bounds after push-out for subsequent iterations
+            myBounds = player.getCollisionBounds();
+        }
+    }
+
     public static void checkCollisions(double deltaTime, Villager player, Farm farm,
             ArrayList<Nest> nests) {
 

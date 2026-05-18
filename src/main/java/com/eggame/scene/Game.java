@@ -161,6 +161,9 @@ public class Game {
         // Run collision detection locally so walls feel responsive
         Logic.checkCollisions(deltaTime, localPlayer, farm, nests);
 
+        // Run player-vs-player collision detection locally so bumping feels responsive
+        Logic.checkPlayerCollisions(localPlayer, villagers);
+
         // Run egg pickup locally so tray UI updates immediately
         Logic.checkEggPickup(localPlayer, eggs);
 
