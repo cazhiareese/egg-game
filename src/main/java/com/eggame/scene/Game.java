@@ -343,6 +343,19 @@ public class Game {
             if (returned)
                 eggs.get(i).setReturnedToNest(true);
         }
+
+        // Recount returned eggs per nest and update nest images
+        for (Nest nest : nests) {
+            int count = 0;
+            for (Egg egg : eggs) {
+                if (egg.isReturnedToNest() && egg.getFromNest() == nest.getCode()) {
+                    count++;
+                }
+            }
+            if (count != nest.getEggsReturned()) {
+                nest.setEggsReturned(count);
+            }
+        }
     }
 
     private void render() {
