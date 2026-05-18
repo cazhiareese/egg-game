@@ -129,6 +129,15 @@ public class CustomizeMenu {
         mainSplit.getChildren().addAll(leftPanel, rightPanel);
         root.getChildren().add(mainSplit);
 
+        // Customization Title
+        Image titleImg = new Image(getClass().getResourceAsStream("/com/eggame/customization/customize_title.png"));
+        ImageView titleView = new ImageView(titleImg);
+        titleView.setFitWidth(400);
+        titleView.setPreserveRatio(true);
+        StackPane.setAlignment(titleView, Pos.TOP_LEFT);
+        StackPane.setMargin(titleView, new Insets(15, 0, 0, 100));
+        root.getChildren().add(titleView);
+
         this.scene = new Scene(root, Game.WINDOW_WIDTH, Game.WINDOW_HEIGHT);
 
         // updates tabs and preview
