@@ -256,6 +256,11 @@ public class Logic {
             return true;
         }
 
+        // check if all eggs are returned (fix for winScene null check)
+        if (eggs == null || eggs.isEmpty()) {
+            return false;
+        }
+
         for (Egg egg : eggs) {
             if (!egg.isReturnedToNest()) {
                 return false;
