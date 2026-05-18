@@ -18,10 +18,12 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Alert;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
@@ -58,6 +60,33 @@ public class Game {
     private int localPlayerId;
     private AvatarState localAvatarState;
 
+    // ── Chat ─────────────────────────────────────────────────────────────
+    /** A single chat entry — text only, kept forever. */
+    private static class ChatMessage {
+        final String text;
+        ChatMessage(String text) { this.text = text; }
+    }
+
+    /** Full persistent message history (capped at MAX_HISTORY). */
+    private final ArrayList<ChatMessage> chatLog = new ArrayList<>();
+    private static final int MAX_HISTORY = 200;
+
+    // Side-panel geometry
+    private static final double PANEL_WIDTH  = 280;
+    private static final double PANEL_X      = WINDOW_WIDTH - PANEL_WIDTH;
+    private static final double PANEL_TOP    = 80;   // below the timer
+    private static final double PANEL_BOTTOM = WINDOW_HEIGHT - 70; // above tray
+    private static final double LINE_H       = 20;
+    private static final double PANEL_PAD    = 8;
+
+    /** Whether the chat side-panel is currently open. */
+    private boolean chatPanelOpen = false;
+    /** Whether the text-input bar is currently accepting keystrokes. */
+    private boolean chatInputOpen = false;
+
+    /** JavaFX text field used as the chat input bar. */
+    private TextField chatInput;
+
     public Game() {
         this.root = new Group();
         this.canvas = new Canvas(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -72,6 +101,25 @@ public class Game {
 
         this.root.getChildren().add(this.canvas);
         Game.gameScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // ── Chat input field (sits at the bottom of the side panel) ──────
+        chatInput = new TextField();
+        chatInput.setPromptText("Say something…");
+        chatInput.setStyle(
+                "-fx-background-color: rgba(20,10,5,0.85);" +
+                "-fx-text-fill: #FFF7D6;" +
+                "-fx-prompt-text-fill: #a0917a;" +
+                "-fx-font-size: 13px;" +
+                "-fx-background-radius: 0 0 6 6;" +
+                "-fx-border-color: #60312B;" +
+                "-fx-border-radius: 0 0 6 6;" +
+                "-fx-border-width: 1px;" +
+                "-fx-padding: 4 8 4 8;");
+        chatInput.setPrefWidth(PANEL_WIDTH);
+        chatInput.setLayoutX(PANEL_X);
+        chatInput.setLayoutY(PANEL_BOTTOM);
+        chatInput.setVisible(false);
+        root.getChildren().add(chatInput);
     }
 
     public void start(ArrayList<String> input, AvatarState avatarState) {
@@ -104,10 +152,54 @@ public class Game {
             e.printStackTrace();
         }
 
+        // ── Wire chat keyboard shortcuts ─────────────────────────────────
+        Game.gameScene.setOnKeyPressed(e -> {
+            // T → toggle the chat panel open/closed
+            if (e.getCode() == KeyCode.T && !chatInputOpen) {
+                toggleChatPanel();
+                e.consume();
+                return;
+            }
+            // Enter → open input if panel is open; send if input is already open
+            if (e.getCode() == KeyCode.ENTER) {
+                if (chatPanelOpen && !chatInputOpen) {
+                    openChatInput();
+                } else if (chatInputOpen) {
+                    sendChat();
+                }
+                e.consume();
+                return;
+            }
+            // Esc → close input (but keep panel); second Esc closes panel
+            if (e.getCode() == KeyCode.ESCAPE) {
+                if (chatInputOpen) {
+                    closeChatInput();
+                } else if (chatPanelOpen) {
+                    chatPanelOpen = false;
+                }
+                e.consume();
+                return;
+            }
+            // Suppress movement keys while the chat input is open
+            if (!chatInputOpen) {
+                String key = e.getCode().name();
+                if (!input.contains(key))
+                    input.add(key);
+            }
+        });
+        Game.gameScene.setOnKeyReleased(e -> {
+            if (!chatInputOpen) {
+                input.remove(e.getCode().name());
+            }
+        });
+
         // Create local villager at the correct index
         String playerName = "Player " + (localPlayerId + 1);
         Villager localVillager = new Villager(playerName);
-        localVillager.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+        // Offset spawn position per player so nobody overlaps at start
+        double spawnX = (WINDOW_WIDTH * 2) / 2.0 + localPlayerId * 150;
+        double spawnY = (WINDOW_HEIGHT * 2) / 2.0;
+        localVillager.setPosition(spawnX, spawnY);
         localVillager.setPlayerId(localPlayerId);
         if (localAvatarState != null) {
             localVillager.setAvatar(localAvatarState.getHeadIndex(), localAvatarState.getHatIndex());
@@ -183,6 +275,10 @@ public class Game {
             String state = client.getLatestGameState();
             if (state != null) {
                 applyGameState(state);
+            }
+            // Drain incoming chat messages and append them to the log
+            for (String msg : client.getLatestChatMessages()) {
+                addChatMessage(msg);
             }
         }
 
@@ -280,6 +376,7 @@ public class Game {
         this.showTimer();
         this.showDetails();
         this.showTray();
+        this.renderChat();
     }
 
     private void showTray() {
@@ -430,7 +527,9 @@ public class Game {
         villagers.clear();
         String playerName = "Player " + (localPlayerId + 1);
         Villager resetPlayer = new Villager(playerName);
-        resetPlayer.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+        double spawnX = (WINDOW_WIDTH * 2) / 2.0 + localPlayerId * 150;
+        double spawnY = (WINDOW_HEIGHT * 2) / 2.0;
+        resetPlayer.setPosition(spawnX, spawnY);
         resetPlayer.setPlayerId(localPlayerId);
 
         // set customized avatar for this player
@@ -447,6 +546,160 @@ public class Game {
 
         // re-initialize your eggs/nests here
         Logic.initRound(nests, eggs, farm, WINDOW_WIDTH, WINDOW_HEIGHT);
+    }
+
+    // ── Chat helpers ───────────────────────────────────────────────────────────
+
+    private void toggleChatPanel() {
+        chatPanelOpen = !chatPanelOpen;
+        if (!chatPanelOpen && chatInputOpen) {
+            closeChatInput();
+        }
+    }
+
+    private void openChatInput() {
+        chatInputOpen = true;
+        input.clear();
+        chatInput.setVisible(true);
+        chatInput.requestFocus();
+    }
+
+    private void closeChatInput() {
+        chatInputOpen = false;
+        chatInput.setVisible(false);
+        chatInput.clear();
+        canvas.requestFocus();
+    }
+
+    private void sendChat() {
+        String text = chatInput.getText().trim();
+        if (!text.isEmpty() && client != null) {
+            client.sendChat(text);
+            // No local echo — the server broadcasts back to all clients including us
+        }
+        closeChatInput();
+    }
+
+    private void addChatMessage(String text) {
+        chatLog.add(new ChatMessage(text));
+        if (chatLog.size() > MAX_HISTORY) {
+            chatLog.remove(0);
+        }
+    }
+
+    /**
+     * Draws the persistent chat side-panel on the right edge of the screen.
+     *
+     * When the panel is closed only a small "[ T ] Chat" tab is drawn.
+     * When open, the full scrolling history is shown with the newest message
+     * pinned to the bottom.  The text-input bar sits below the history area.
+     */
+    private void renderChat() {
+        gc.save();
+        gc.setTextAlign(TextAlignment.LEFT);
+
+        if (!chatPanelOpen) {
+            // ── Collapsed: draw a small tab ──────────────────────────────
+            double tabH = 28;
+            double tabY = PANEL_TOP;
+            gc.setGlobalAlpha(0.75);
+            gc.setFill(Color.web("#1a0d06"));
+            gc.fillRoundRect(PANEL_X - 2, tabY, PANEL_WIDTH + 2, tabH, 6, 6);
+            gc.setStroke(Color.web("#60312B"));
+            gc.setLineWidth(1.5);
+            gc.strokeRoundRect(PANEL_X - 2, tabY, PANEL_WIDTH + 2, tabH, 6, 6);
+
+            gc.setGlobalAlpha(0.9);
+            gc.setFont(Font.font("System", 13));
+            gc.setFill(Color.web("#FFF7D6"));
+            String label = chatLog.isEmpty()
+                    ? "Chat  [ T ]"
+                    : "Chat (" + chatLog.size() + ")  [ T ]";
+            gc.fillText(label, PANEL_X + PANEL_PAD, tabY + 19);
+
+            gc.setGlobalAlpha(1.0);
+            gc.restore();
+            return;
+        }
+
+        // ── Open panel ───────────────────────────────────────────────────
+        double inputBarH = chatInputOpen ? 30 : 0;
+        double historyBottom = PANEL_BOTTOM - inputBarH;
+        double historyHeight = historyBottom - PANEL_TOP;
+
+        // Panel background
+        gc.setGlobalAlpha(0.82);
+        gc.setFill(Color.web("#120800"));
+        gc.fillRect(PANEL_X, PANEL_TOP, PANEL_WIDTH, historyHeight + inputBarH);
+
+        // Border
+        gc.setGlobalAlpha(1.0);
+        gc.setStroke(Color.web("#60312B"));
+        gc.setLineWidth(1.5);
+        gc.strokeRect(PANEL_X, PANEL_TOP, PANEL_WIDTH, historyHeight + inputBarH);
+
+        // Header bar
+        gc.setGlobalAlpha(0.95);
+        gc.setFill(Color.web("#2a1208"));
+        gc.fillRect(PANEL_X, PANEL_TOP, PANEL_WIDTH, 24);
+        gc.setFont(Font.font("System", 12));
+        gc.setFill(Color.web("#c4a060"));
+        gc.fillText("Chat  —  [ T ] close  [ Esc ] cancel", PANEL_X + PANEL_PAD, PANEL_TOP + 16);
+
+        // ── Message history ──────────────────────────────────────────────
+        // How many lines fit in the history area (minus the 24-px header)
+        double msgAreaTop    = PANEL_TOP + 24 + 4;
+        double msgAreaBottom = historyBottom - 4;
+        double msgAreaH      = msgAreaBottom - msgAreaTop;
+        int maxVisible = (int) (msgAreaH / LINE_H);
+
+        // Show the most-recent maxVisible messages
+        int start = Math.max(0, chatLog.size() - maxVisible);
+        gc.setFont(Font.font("System", 13));
+
+        for (int i = start; i < chatLog.size(); i++) {
+            double y = msgAreaTop + (i - start) * LINE_H + LINE_H - 4;
+            String text = chatLog.get(i).text;
+
+            // Alternate row tinting
+            if ((i % 2) == 0) {
+                gc.setGlobalAlpha(0.12);
+                gc.setFill(Color.WHITE);
+                gc.fillRect(PANEL_X + 1, y - LINE_H + 4, PANEL_WIDTH - 2, LINE_H);
+            }
+
+            // Truncate long lines to fit the panel width
+            String display = text;
+            while (display.length() > 1 && display.length() * 7.2 > PANEL_WIDTH - PANEL_PAD * 2) {
+                display = display.substring(0, display.length() - 1);
+            }
+            if (!display.equals(text)) display += "\u2026";
+
+            gc.setGlobalAlpha(0.95);
+            gc.setFill(Color.web("#FFF7D6"));
+            gc.fillText(display, PANEL_X + PANEL_PAD, y);
+        }
+
+        // If no messages yet
+        if (chatLog.isEmpty()) {
+            gc.setGlobalAlpha(0.45);
+            gc.setFont(Font.font("System", 12));
+            gc.setFill(Color.web("#a0917a"));
+            gc.fillText("No messages yet…", PANEL_X + PANEL_PAD, msgAreaTop + LINE_H);
+        }
+
+        // ── Footer hint (when input is closed) ───────────────────────────
+        if (!chatInputOpen) {
+            gc.setGlobalAlpha(0.6);
+            gc.setFill(Color.web("#2a1208"));
+            gc.fillRect(PANEL_X, historyBottom, PANEL_WIDTH, 22);
+            gc.setFont(Font.font("System", 11));
+            gc.setFill(Color.web("#c4a060"));
+            gc.fillText("[ Enter ] to type a message", PANEL_X + PANEL_PAD, historyBottom + 15);
+        }
+
+        gc.setGlobalAlpha(1.0);
+        gc.restore();
     }
 
     public GraphicsContext getGc() {

@@ -136,6 +136,11 @@ public class Logic {
         }
     }
 
+    /**
+     * Maximum pixels a player can be pushed per frame by player-player collision.
+     */
+    private static final double MAX_PUSH_PER_FRAME = 3.0;
+
     public static void checkPlayerCollisions(Villager player, ArrayList<Villager> villagers) {
         Rectangle2D myBounds = player.getCollisionBounds();
 
@@ -151,6 +156,19 @@ public class Logic {
                 continue;
             }
 
+            // Centre of each collision box
+            double myCx = myBounds.getMinX() + myBounds.getWidth() / 2;
+            double myCy = myBounds.getMinY() + myBounds.getHeight() / 2;
+            double otCx = otherBounds.getMinX() + otherBounds.getWidth() / 2;
+            double otCy = otherBounds.getMinY() + otherBounds.getHeight() / 2;
+
+            if (Math.abs(myCx - otCx) < 0.001 && Math.abs(myCy - otCy) < 0.001) {
+                double nudge = (player.getPlayerId() < other.getPlayerId()) ? -MAX_PUSH_PER_FRAME : MAX_PUSH_PER_FRAME;
+                player.setPosition(player.getPositionX() + nudge, player.getPositionY() + nudge);
+                myBounds = player.getCollisionBounds();
+                continue;
+            }
+
             // Compute overlap on each axis
             double overlapLeft = (myBounds.getMinX() + myBounds.getWidth()) - otherBounds.getMinX();
             double overlapRight = (otherBounds.getMinX() + otherBounds.getWidth()) - myBounds.getMinX();
@@ -161,12 +179,13 @@ public class Logic {
             double resolveX = (overlapLeft < overlapRight) ? -overlapLeft : overlapRight;
             double resolveY = (overlapTop < overlapBottom) ? -overlapTop : overlapBottom;
 
+            // Clamp the push-out so overlapping players separate gradually
             if (Math.abs(resolveX) <= Math.abs(resolveY)) {
-                // Push out horizontally and cancel horizontal velocity
+                resolveX = Math.max(-MAX_PUSH_PER_FRAME, Math.min(MAX_PUSH_PER_FRAME, resolveX));
                 player.setPosition(player.getPositionX() + resolveX, player.getPositionY());
                 player.setVelocity(0, player.getVelocityY());
             } else {
-                // Push out vertically and cancel vertical velocity
+                resolveY = Math.max(-MAX_PUSH_PER_FRAME, Math.min(MAX_PUSH_PER_FRAME, resolveY));
                 player.setPosition(player.getPositionX(), player.getPositionY() + resolveY);
                 player.setVelocity(player.getVelocityX(), 0);
             }
@@ -314,11 +333,4 @@ public class Logic {
         }
     }
 
-    // public static Villager getWinner(ArrayList<Villager> villagers) {
-    // // TODO: Compare egg counts and return the winner (for implementatio in
-    // multiplayer)
-
-    // return null;
-    // }
-    // }
 }
