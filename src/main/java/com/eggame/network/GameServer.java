@@ -62,8 +62,23 @@ public class GameServer {
                 handleJoin(parts, packet);
             } else if (type.equals(PacketType.INPUT)) {
                 handleInput(parts);
+            } else if (type.equals(PacketType.RESET)) {
+                handleReset();
             }
         }
+    }
+
+    // handle rest request from client - clears game and reinitializes eggs/nests
+    private void handleReset() {
+        timeRemaining = GAME_DURATION;
+        eggs.clear();
+        nests.clear();
+        for (Villager v : villagers) {
+            v.getEggTray().getEggs().clear();
+            v.setEggsReturned(0);
+        }
+        Logic.initRound(nests, eggs, farm, WORLD_WIDTH, WORLD_HEIGHT);
+        System.out.println("Game was reset by a client.");
     }
 
     private void handleJoin(String[] parts, DatagramPacket packet) throws Exception {
@@ -109,12 +124,15 @@ public class GameServer {
 
     private void gameLoop() {
 
-        while (timeRemaining > 0) {
+        while (true) {
+
             double deltaTime = 0.05;
 
-            Logic.serverUpdate(deltaTime, villagers, eggs, nests, farm);
-
-            timeRemaining -= deltaTime;
+            // update if time is still remaining
+            if (timeRemaining > 0) {
+                Logic.serverUpdate(deltaTime, villagers, eggs, nests, farm);
+                timeRemaining -= deltaTime;
+            }
 
             try {
                 broadcastGameState();

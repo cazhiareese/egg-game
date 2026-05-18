@@ -43,8 +43,18 @@ public class GameClient implements Runnable {
 
     public void sendPlayerState(double posX, double posY, double velX, double velY, int headIndex, int hatIndex) {
         try {
-            String msg = PacketType.INPUT + "|" + playerId + "|" + posX + "|" + posY + "|" + velX + "|" + velY + "|" + headIndex + "|" + hatIndex;
+            String msg = PacketType.INPUT + "|" + playerId + "|" + posX + "|" + posY + "|" + velX + "|" + velY + "|"
+                    + headIndex + "|" + hatIndex;
             sendMessage(msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // send reset request to server
+    public void sendReset() {
+        try {
+            sendMessage(PacketType.RESET);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -17,10 +17,7 @@ import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -57,8 +54,12 @@ public class Game {
     private GameClient client;
     private int localPlayerId;
     private AvatarState localAvatarState;
+    private boolean waitingForServerReset = false; // flag for server reset
 
-    public Game() {
+    private SceneManager sceneManager;
+
+    public Game(SceneManager sceneManager) {
+        this.sceneManager = sceneManager;
         this.root = new Group();
         this.canvas = new Canvas(WINDOW_WIDTH, WINDOW_HEIGHT);
         this.bg = new Canvas(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -184,9 +185,15 @@ public class Game {
         }
 
         mainCamera.follow(localPlayer.getPositionX(), localPlayer.getPositionY(), farm);
-        if (Logic.isRoundOver(eggs, nests, timeRemaining)) {
+
+        // add delay to prevent win/lose Scene from popping up immediately after reset
+        if (waitingForServerReset && timeRemaining > 110) {
+            waitingForServerReset = false;
+        }
+
+        if (!waitingForServerReset && Logic.isRoundOver(eggs, nests, timeRemaining)) {
             gameState = GameState.ROUND_OVER;
-            showRoundOverPopup();
+            showWinScene();
         }
 
     }
@@ -366,7 +373,7 @@ public class Game {
         gc.fillText(timeStr, WINDOW_WIDTH / 2.0, 72);
     }
 
-    private void showRoundOverPopup() {
+    private void showWinScene() {
         Villager localPlayer = villagers.get(localPlayerId);
         int myReturned = localPlayer.getEggsReturned();
 
@@ -385,7 +392,6 @@ public class Game {
         StringBuilder sb = new StringBuilder();
         sb.append("Your Eggs Returned: ").append(myReturned).append("\n");
         if (villagers.size() > 1) {
-            sb.append("\n--- Scoreboard ---\n");
             // Sort by eggs returned (descending) for display
             ArrayList<Villager> sorted = new ArrayList<>(villagers);
             sorted.sort((a, b) -> b.getEggsReturned() - a.getEggsReturned());
@@ -398,24 +404,13 @@ public class Game {
         }
 
         Platform.runLater(() -> {
-            Alert alert = new Alert(AlertType.INFORMATION);
-            alert.setTitle("Results");
-            alert.setHeaderText(headerText);
-            alert.setContentText(sb.toString());
-
-            ButtonType playAgainButton = new ButtonType("Play Again");
-            alert.getButtonTypes().setAll(playAgainButton);
-
-            alert.showAndWait().ifPresent(type -> {
-                if (type == playAgainButton) {
-                    resetGame();
-                }
-            });
+            sceneManager.switchToWinScene(headerText, sb.toString());
         });
     }
 
-    private void resetGame() {
+    public void resetGame() {
         gameState = GameState.PLAYING;
+        timeRemaining = GAME_DURATION;
 
         input.clear();
 
@@ -438,7 +433,13 @@ public class Game {
         nests.clear();
 
         // re-initialize your eggs/nests here
-        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH, WINDOW_HEIGHT);
+        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
+
+        // send reset
+        waitingForServerReset = true;
+        if (client != null) {
+            client.sendReset();
+        }
     }
 
     public GraphicsContext getGc() {

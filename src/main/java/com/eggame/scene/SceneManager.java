@@ -27,7 +27,7 @@ public class SceneManager {
             this.game.stop();
         }
 
-        this.game = new Game();
+        this.game = new Game(this);
         Scene gameScene = Game.getScene();
 
         setScene(gameScene);
@@ -73,7 +73,19 @@ public class SceneManager {
         setScene(customizeScene);
     }
 
-    // public void switchToGameOver() { ... }
+    public void switchToWinScene(String header, String scoreboard) {
+        WinScene winScene = new WinScene(this, header, scoreboard);
+        setScene(winScene.getScene());
+    }
+
+    public void resetAndResumeGame() {
+        if (this.game != null) {
+            setScene(Game.getScene());
+            bindInput(Game.getScene());
+            this.game.resetGame();
+        }
+    }
+
     // public void switchToSplash() { ... }
 
     public AvatarState getAvatarState() {
