@@ -93,7 +93,10 @@ public class GameServer {
         lastHeard.put(id, System.currentTimeMillis());
         Villager v = new Villager(playerName);
         v.setPlayerId(id);
-        v.setPosition(WORLD_WIDTH / 2.0 + id * 150, WORLD_HEIGHT / 2.0); // offset per player
+        double preferredX = WORLD_WIDTH / 2.0 + id * 150;
+        double preferredY = WORLD_HEIGHT / 2.0;
+        double[] safe = Logic.findSafeSpawn(preferredX, preferredY, nests, farm);
+        v.setPosition(safe[0], safe[1]);
         villagers.add(v);
         // Send back: JOIN_ACK|playerId|totalPlayers
         String ack = PacketType.JOIN_ACK + "|" + id + "|" + clients.size();

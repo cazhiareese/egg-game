@@ -136,6 +136,93 @@ public class Logic {
         }
     }
 
+    /**
+     * Finds a spawn position near ({@code preferredX}, {@code preferredY}) that
+     * does not overlap any nest or obstacle.  Searches in a spiral pattern
+     * outward from the preferred point.
+     *
+     * @return {@code double[]{x, y}} of a safe position
+     */
+    public static double[] findSafeSpawn(double preferredX, double preferredY,
+            ArrayList<Nest> nests, Farm farm) {
+
+        // Approximate villager collision footprint (matches Sprite.getCollisionBounds)
+        double playerW = 78 * 0.8;
+        double playerH = 97.2 * 0.6;
+
+        // Try increasingly larger offsets around the preferred point
+        double step = 120; // pixels per step
+        int maxRings = 15;
+
+        for (int ring = 0; ring <= maxRings; ring++) {
+            // Number of candidates along each side of this ring
+            int side = ring == 0 ? 1 : ring * 4;
+            for (int s = 0; s < side; s++) {
+                double angle = (2 * Math.PI * s) / side;
+                double cx = preferredX + Math.cos(angle) * ring * step;
+                double cy = preferredY + Math.sin(angle) * ring * step;
+
+                // Clamp to world boundaries (leave a 50px margin)
+                if (cx < 50 || cy < 50
+                        || cx + playerW > farm.getWidth() - 50
+                        || cy + playerH > farm.getHeight() - 50) {
+                    continue;
+                }
+
+                Rectangle2D bounds = new Rectangle2D(cx, cy, playerW, playerH);
+                boolean blocked = false;
+
+                // Check nests
+                if (nests != null) {
+                    for (Nest n : nests) {
+                        if (n.getBounds().intersects(bounds)) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Check obstacle grid
+                Obstacle[][] grid = farm.getObstacleGrid();
+                if (!blocked && grid != null) {
+                    for (int r = 0; r < grid.length && !blocked; r++) {
+                        for (int c = 0; c < grid[r].length && !blocked; c++) {
+                            if (grid[r][c] != null && grid[r][c].getCollide()
+                                    && grid[r][c].intersects(bounds)) {
+                                blocked = true;
+                            }
+                        }
+                    }
+                }
+
+                // Check walls
+                if (!blocked && farm.getHorizontalWallUpper() != null) {
+                    for (Obstacle obs : farm.getHorizontalWallUpper())
+                        if (obs.getCollide() && obs.intersects(bounds)) blocked = true;
+                }
+                if (!blocked && farm.getHorizontalWallLower() != null) {
+                    for (Obstacle obs : farm.getHorizontalWallLower())
+                        if (obs.getCollide() && obs.intersects(bounds)) blocked = true;
+                }
+                if (!blocked && farm.getVerticalWallLeft() != null) {
+                    for (Obstacle obs : farm.getVerticalWallLeft())
+                        if (obs.getCollide() && obs.intersects(bounds)) blocked = true;
+                }
+                if (!blocked && farm.getVerticalWallRight() != null) {
+                    for (Obstacle obs : farm.getVerticalWallRight())
+                        if (obs.getCollide() && obs.intersects(bounds)) blocked = true;
+                }
+
+                if (!blocked) {
+                    return new double[] { cx, cy };
+                }
+            }
+        }
+
+        // Fallback — return the preferred position if nothing clear was found
+        return new double[] { preferredX, preferredY };
+    }
+
     private static final double MAX_PUSH_PER_FRAME = 3.0;
 
     public static void checkPlayerCollisions(Villager player, ArrayList<Villager> villagers) {

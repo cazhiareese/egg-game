@@ -200,14 +200,19 @@ public class Game {
         // Create local villager at the correct index
         String playerName = "Player " + (localPlayerId + 1);
         Villager localVillager = new Villager(playerName);
-        // Offset spawn position per player so nobody overlaps at start
-        double spawnX = (WINDOW_WIDTH * 2) / 2.0 + localPlayerId * 150;
-        double spawnY = (WINDOW_HEIGHT * 2) / 2.0;
-        localVillager.setPosition(spawnX, spawnY);
         localVillager.setPlayerId(localPlayerId);
         if (localAvatarState != null) {
             localVillager.setAvatar(localAvatarState.getHeadIndex(), localAvatarState.getHatIndex());
         }
+
+        // Spawn nests and eggs first so we can validate the player spawn position
+        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
+
+        // Find a safe spawn that doesn't overlap nests or obstacles
+        double preferredX = (WINDOW_WIDTH * 2) / 2.0 + localPlayerId * 150;
+        double preferredY = (WINDOW_HEIGHT * 2) / 2.0;
+        double[] safe = Logic.findSafeSpawn(preferredX, preferredY, nests, farm);
+        localVillager.setPosition(safe[0], safe[1]);
 
         // Pad list so this player lands at the right index
         while (villagers.size() < localPlayerId) {
@@ -216,9 +221,6 @@ public class Game {
         villagers.add(localVillager);
 
         mainCamera.follow(localVillager.getPositionX(), localVillager.getPositionY(), farm);
-
-        // Spawn nests and eggs for this round
-        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
         // Start the game loop
         this.gameLoop = new AnimationTimer() {
             private long lastTime = 0;
@@ -536,12 +538,21 @@ public class Game {
         input.clear();
 
         villagers.clear();
+        eggs.clear();
+        nests.clear();
+
+        // Re-initialize eggs/nests first so we can validate spawn position
+        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
+
         String playerName = "Player " + (localPlayerId + 1);
         Villager resetPlayer = new Villager(playerName);
-        double spawnX = (WINDOW_WIDTH * 2) / 2.0 + localPlayerId * 150;
-        double spawnY = (WINDOW_HEIGHT * 2) / 2.0;
-        resetPlayer.setPosition(spawnX, spawnY);
         resetPlayer.setPlayerId(localPlayerId);
+
+        // Find a safe spawn position
+        double preferredX = (WINDOW_WIDTH * 2) / 2.0 + localPlayerId * 150;
+        double preferredY = (WINDOW_HEIGHT * 2) / 2.0;
+        double[] safe = Logic.findSafeSpawn(preferredX, preferredY, nests, farm);
+        resetPlayer.setPosition(safe[0], safe[1]);
 
         // set customized avatar for this player
         if (localAvatarState != null) {
@@ -552,12 +563,6 @@ public class Game {
         }
         villagers.add(resetPlayer);
 
-        eggs.clear();
-        nests.clear();
-
-        // re-initialize your eggs/nests here
-        Logic.initRound(nests, eggs, farm, WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
-
         // send reset
         waitingForServerReset = true;
         if (client != null) {
@@ -565,45 +570,6 @@ public class Game {
         }
     }
 
-    // ── Chat helpers ───────────────────────────────────────────────────────────
-
-    private void toggleChatPanel() {
-        chatPanelOpen = !chatPanelOpen;
-        if (!chatPanelOpen && chatInputOpen) {
-            closeChatInput();
-        }
-    }
-
-    private void openChatInput() {
-        chatInputOpen = true;
-        input.clear();
-        chatInput.setVisible(true);
-        chatInput.requestFocus();
-    }
-
-    private void closeChatInput() {
-        chatInputOpen = false;
-        chatInput.setVisible(false);
-        chatInput.clear();
-        canvas.requestFocus();
-    }
-
-    private void sendChat() {
-        String text = chatInput.getText().trim();
-        if (!text.isEmpty() && client != null) {
-            client.sendChat(text);
-            // No local echo — the server broadcasts back to all clients including us
-        }
-        closeChatInput();
-    }
-
-    private void addChatMessage(String text) {
-        chatLog.add(new ChatMessage(text));
-        if (chatLog.size() > MAX_HISTORY) {
-            chatLog.remove(0);
-        }
-    }
-
     /**
      * Draws the persistent chat side-panel on the right edge of the screen.
      *
@@ -757,122 +723,6 @@ public class Game {
         if (chatLog.size() > MAX_HISTORY) {
             chatLog.remove(0);
         }
-    }
-
-    /**
-     * Draws the persistent chat side-panel on the right edge of the screen.
-     *
-     * When the panel is closed only a small "[ T ] Chat" tab is drawn.
-     * When open, the full scrolling history is shown with the newest message
-     * pinned to the bottom. The text-input bar sits below the history area.
-     */
-    private void renderChat() {
-        gc.save();
-        gc.setTextAlign(TextAlignment.LEFT);
-
-        if (!chatPanelOpen) {
-            // ── Collapsed: draw a small tab ──────────────────────────────
-            double tabH = 28;
-            double tabY = PANEL_TOP;
-            gc.setGlobalAlpha(0.75);
-            gc.setFill(Color.web("#1a0d06"));
-            gc.fillRoundRect(PANEL_X - 2, tabY, PANEL_WIDTH + 2, tabH, 6, 6);
-            gc.setStroke(Color.web("#60312B"));
-            gc.setLineWidth(1.5);
-            gc.strokeRoundRect(PANEL_X - 2, tabY, PANEL_WIDTH + 2, tabH, 6, 6);
-
-            gc.setGlobalAlpha(0.9);
-            gc.setFont(Font.font("System", 13));
-            gc.setFill(Color.web("#FFF7D6"));
-            String label = chatLog.isEmpty()
-                    ? "Chat  [ T ]"
-                    : "Chat (" + chatLog.size() + ")  [ T ]";
-            gc.fillText(label, PANEL_X + PANEL_PAD, tabY + 19);
-
-            gc.setGlobalAlpha(1.0);
-            gc.restore();
-            return;
-        }
-
-        // ── Open panel ───────────────────────────────────────────────────
-        double inputBarH = chatInputOpen ? 30 : 0;
-        double historyBottom = PANEL_BOTTOM - inputBarH;
-        double historyHeight = historyBottom - PANEL_TOP;
-
-        // Panel background
-        gc.setGlobalAlpha(0.82);
-        gc.setFill(Color.web("#120800"));
-        gc.fillRect(PANEL_X, PANEL_TOP, PANEL_WIDTH, historyHeight + inputBarH);
-
-        // Border
-        gc.setGlobalAlpha(1.0);
-        gc.setStroke(Color.web("#60312B"));
-        gc.setLineWidth(1.5);
-        gc.strokeRect(PANEL_X, PANEL_TOP, PANEL_WIDTH, historyHeight + inputBarH);
-
-        // Header bar
-        gc.setGlobalAlpha(0.95);
-        gc.setFill(Color.web("#2a1208"));
-        gc.fillRect(PANEL_X, PANEL_TOP, PANEL_WIDTH, 24);
-        gc.setFont(Font.font("System", 12));
-        gc.setFill(Color.web("#c4a060"));
-        gc.fillText("Chat  —  [ T ] close  [ Esc ] cancel", PANEL_X + PANEL_PAD, PANEL_TOP + 16);
-
-        // ── Message history ──────────────────────────────────────────────
-        // How many lines fit in the history area (minus the 24-px header)
-        double msgAreaTop = PANEL_TOP + 24 + 4;
-        double msgAreaBottom = historyBottom - 4;
-        double msgAreaH = msgAreaBottom - msgAreaTop;
-        int maxVisible = (int) (msgAreaH / LINE_H);
-
-        // Show the most-recent maxVisible messages
-        int start = Math.max(0, chatLog.size() - maxVisible);
-        gc.setFont(Font.font("System", 13));
-
-        for (int i = start; i < chatLog.size(); i++) {
-            double y = msgAreaTop + (i - start) * LINE_H + LINE_H - 4;
-            String text = chatLog.get(i).text;
-
-            // Alternate row tinting
-            if ((i % 2) == 0) {
-                gc.setGlobalAlpha(0.12);
-                gc.setFill(Color.WHITE);
-                gc.fillRect(PANEL_X + 1, y - LINE_H + 4, PANEL_WIDTH - 2, LINE_H);
-            }
-
-            // Truncate long lines to fit the panel width
-            String display = text;
-            while (display.length() > 1 && display.length() * 7.2 > PANEL_WIDTH - PANEL_PAD * 2) {
-                display = display.substring(0, display.length() - 1);
-            }
-            if (!display.equals(text))
-                display += "\u2026";
-
-            gc.setGlobalAlpha(0.95);
-            gc.setFill(Color.web("#FFF7D6"));
-            gc.fillText(display, PANEL_X + PANEL_PAD, y);
-        }
-
-        // If no messages yet
-        if (chatLog.isEmpty()) {
-            gc.setGlobalAlpha(0.45);
-            gc.setFont(Font.font("System", 12));
-            gc.setFill(Color.web("#a0917a"));
-            gc.fillText("No messages yet…", PANEL_X + PANEL_PAD, msgAreaTop + LINE_H);
-        }
-
-        // ── Footer hint (when input is closed) ───────────────────────────
-        if (!chatInputOpen) {
-            gc.setGlobalAlpha(0.6);
-            gc.setFill(Color.web("#2a1208"));
-            gc.fillRect(PANEL_X, historyBottom, PANEL_WIDTH, 22);
-            gc.setFont(Font.font("System", 11));
-            gc.setFill(Color.web("#c4a060"));
-            gc.fillText("[ Enter ] to type a message", PANEL_X + PANEL_PAD, historyBottom + 15);
-        }
-
-        gc.setGlobalAlpha(1.0);
-        gc.restore();
     }
 
     public GraphicsContext getGc() {
