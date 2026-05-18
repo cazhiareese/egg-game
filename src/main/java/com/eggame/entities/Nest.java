@@ -5,6 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 
 public class Nest extends Sprite {
     private int code;
+    private int eggsReturned = 0;
 
     public Nest(int code) {
         this.code = code;
@@ -36,6 +37,34 @@ public class Nest extends Sprite {
 
     public boolean intersects(Rectangle2D other) {
         return super.intersects(other);
+    }
+
+    public int getEggsReturned() {
+        return eggsReturned;
+    }
+
+    public void addEggReturned() {
+        eggsReturned++;
+        updateImage();
+    }
+
+    public void setEggsReturned(int count) {
+        this.eggsReturned = count;
+        updateImage();
+    }
+
+    public void resetEggsReturned() {
+        eggsReturned = 0;
+        updateImage();
+    }
+
+    private void updateImage() {
+        String filename = "nest" + code + "-" + eggsReturned + ".png";
+        try {
+            super.setImage(filename);
+        } catch (Exception e) {
+            // Fallback: if the specific file doesn't exist keep the current image
+        }
     }
 
 }

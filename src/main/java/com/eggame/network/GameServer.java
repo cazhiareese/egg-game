@@ -16,6 +16,9 @@ public class GameServer {
 
     private DatagramSocket socket;
     private Map<Integer, InetSocketAddress> clients = new HashMap<>();
+    /** Epoch millis of the last packet received from each client. */
+    private Map<Integer, Long> lastHeard = new HashMap<>();
+    private static final long CLIENT_TIMEOUT_MS = 5000; // 5 seconds
     private int nextPlayerId = 0;
 
     // Game state (shared between threads — be careful!)
@@ -50,7 +53,7 @@ public class GameServer {
     }
 
     private void receiveLoop() throws Exception {
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[4096];
         while (true) {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
@@ -62,6 +65,8 @@ public class GameServer {
                 handleJoin(parts, packet);
             } else if (type.equals(PacketType.INPUT)) {
                 handleInput(parts);
+            } else if (type.equals(PacketType.CHAT)) {
+                handleChat(parts);
             } else if (type.equals(PacketType.RESET)) {
                 handleReset();
             }
@@ -85,9 +90,10 @@ public class GameServer {
         String playerName = parts[1];
         int id = nextPlayerId++;
         clients.put(id, new InetSocketAddress(packet.getAddress(), packet.getPort()));
+        lastHeard.put(id, System.currentTimeMillis());
         Villager v = new Villager(playerName);
         v.setPlayerId(id);
-        v.setPosition(WORLD_WIDTH / 2.0, WORLD_HEIGHT / 2.0); // spawn at center
+        v.setPosition(WORLD_WIDTH / 2.0 + id * 150, WORLD_HEIGHT / 2.0); // offset per player
         villagers.add(v);
         // Send back: JOIN_ACK|playerId|totalPlayers
         String ack = PacketType.JOIN_ACK + "|" + id + "|" + clients.size();
@@ -103,6 +109,7 @@ public class GameServer {
         int playerId = Integer.parseInt(parts[1]);
         if (playerId < 0 || playerId >= villagers.size())
             return;
+        lastHeard.put(playerId, System.currentTimeMillis());
         double posX = Double.parseDouble(parts[2]);
         double posY = Double.parseDouble(parts[3]);
         double velX = Double.parseDouble(parts[4]);
@@ -122,26 +129,96 @@ public class GameServer {
         }
     }
 
+    private void handleChat(String[] parts) throws Exception {
+        // Format: CHAT|playerId|text
+        if (parts.length < 3)
+            return;
+        int senderId;
+        try {
+            senderId = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            return;
+        }
+        String text = parts[2];
+
+        // Resolve a display name for the sender
+        String senderName;
+        if (senderId >= 0 && senderId < villagers.size()) {
+            senderName = villagers.get(senderId).getName();
+        } else {
+            senderName = "Player " + senderId;
+        }
+
+        // Broadcast to every client: CHAT|senderName|text
+        broadcastChat(senderName, text);
+        System.out.println("[CHAT] " + senderName + ": " + text);
+    }
+
+    private void broadcastChat(String senderName, String text) throws Exception {
+        // Sanitize to keep the pipe-delimited protocol intact
+        String safeName = senderName.replace("|", "");
+        String safeText = text.replace("|", "");
+        String message = PacketType.CHAT + "|" + safeName + "|" + safeText;
+        byte[] data = message.getBytes();
+        for (InetSocketAddress client : clients.values()) {
+            socket.send(new DatagramPacket(data, data.length, client));
+        }
+    }
+
     private void gameLoop() {
 
         while (true) {
+            // Prune stale clients before ticking
+            pruneStaleClients();
 
-            double deltaTime = 0.05;
-
-            // update if time is still remaining
             if (timeRemaining > 0) {
+                double deltaTime = 0.05;
                 Logic.serverUpdate(deltaTime, villagers, eggs, nests, farm);
                 timeRemaining -= deltaTime;
             }
 
             try {
-                broadcastGameState();
+                if (!clients.isEmpty()) {
+                    broadcastGameState();
+                }
                 Thread.sleep(50);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         }
+    }
+
+    private void pruneStaleClients() {
+        long now = System.currentTimeMillis();
+        Iterator<Map.Entry<Integer, Long>> it = lastHeard.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, Long> entry = it.next();
+            if (now - entry.getValue() > CLIENT_TIMEOUT_MS) {
+                int id = entry.getKey();
+                it.remove();
+                clients.remove(id);
+                System.out.println("Player " + id + " timed out");
+            }
+        }
+
+        // When every client has disconnected, reset the whole server
+        if (clients.isEmpty() && nextPlayerId > 0) {
+            resetServer();
+        }
+    }
+
+    private void resetServer() {
+        System.out.println("All clients disconnected — resetting server state");
+        nextPlayerId = 0;
+        villagers.clear();
+        eggs.clear();
+        nests.clear();
+        lastHeard.clear();
+        timeRemaining = GAME_DURATION;
+
+        // Re-initialise world
+        Logic.initRound(nests, eggs, farm, WORLD_WIDTH, WORLD_HEIGHT);
+        System.out.println("World re-initialized: " + eggs.size() + " eggs, " + nests.size() + " nests");
     }
 
     private void broadcastGameState() throws Exception {
