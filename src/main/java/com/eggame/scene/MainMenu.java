@@ -168,36 +168,44 @@ public class MainMenu {
 
         Button joinServer = createMenuButton("Join Game");   //PLAY BUTTON
         joinServer.setOnAction(e -> {
-        if (this.sceneManager != null) {
             TextInputDialog dialog = new TextInputDialog("192.168.1.");
             dialog.setTitle("Join Game");
             dialog.setHeaderText("Enter the host's IP address:");
 
             dialog.showAndWait().ifPresent(ip -> {
                 if (ip.isBlank()) return;
-                try (java.net.DatagramSocket testSocket = new java.net.DatagramSocket()){
-                    InetAddress address = InetAddress.getByName(ip);
-                    String testMsg = PacketType.JOIN + "|ConnectionTest";
-                    testSocket.setSoTimeout(2000);
-                    byte[] sendData = testMsg.getBytes();
-                    java.net.DatagramPacket sendPacket = new java.net.DatagramPacket(
-                            sendData, sendData.length, java.net.InetAddress.getByName(ip), 9876);
-                    testSocket.send(sendPacket);
 
-                    byte[] recvData = new byte[1024];
-                    java.net.DatagramPacket recvPacket = new java.net.DatagramPacket(recvData, recvData.length);
-                    
-                    testSocket.receive(recvPacket);
-                    if (!address.isReachable(2000)) { // 2 second timeout
-                        showError("Cannot reach host at " + ip + ". Make sure the host has started a game.");
-                        return;
+                // Start a background thread so the UI doesn't freeze
+                new Thread(() -> {
+                    try (java.net.DatagramSocket testSocket = new java.net.DatagramSocket()) {
+                        InetAddress address = InetAddress.getByName(ip);
+                        String testMsg = PacketType.JOIN + "|ConnectionTest";
+                        testSocket.setSoTimeout(2000); 
+                        
+                        byte[] sendData = testMsg.getBytes();
+                        java.net.DatagramPacket sendPacket = new java.net.DatagramPacket(
+                                sendData, sendData.length, address, 9876);
+                        
+                        testSocket.send(sendPacket);
+
+                        byte[] recvData = new byte[1024];
+                        java.net.DatagramPacket recvPacket = new java.net.DatagramPacket(recvData, recvData.length);
+                        
+                        // This call blocks, but it's okay now because it's in a background thread
+                        testSocket.receive(recvPacket);
+
+                        // Use Platform.runLater to switch scenes back on the UI thread
+                        javafx.application.Platform.runLater(() -> {
+                            sceneManager.switchToLobby("Player", false, ip);
+                        });
+
+                    } catch (Exception ex) {
+                        javafx.application.Platform.runLater(() -> {
+                            showError("Cannot reach host at " + ip);
+                        });
                     }
-                        sceneManager.switchToLobby("Player", false,  ip); // isHost = false
-                } catch (Exception ex) {
-                    showError("Invalid IP address: " + ip);
-                }
+                }).start();
             });
-            }
         });
 
         Button instructionsButton = createMenuButton("Instructions");   //INSTRUCTIONS BUTTON
