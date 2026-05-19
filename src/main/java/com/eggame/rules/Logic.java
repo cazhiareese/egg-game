@@ -219,8 +219,6 @@ public class Logic {
         return new double[] { preferredX, preferredY };
     }
 
-    private static final double MAX_PUSH_PER_FRAME = 3.0;
-
     public static void checkPlayerCollisions(Villager player, ArrayList<Villager> villagers) {
         Rectangle2D myBounds = player.getCollisionBounds();
 
@@ -242,35 +240,25 @@ public class Logic {
             double otCx = otherBounds.getMinX() + otherBounds.getWidth() / 2;
             double otCy = otherBounds.getMinY() + otherBounds.getHeight() / 2;
 
-            if (Math.abs(myCx - otCx) < 0.001 && Math.abs(myCy - otCy) < 0.001) {
-                double nudge = (player.getPlayerId() < other.getPlayerId()) ? -MAX_PUSH_PER_FRAME : MAX_PUSH_PER_FRAME;
-                player.setPosition(player.getPositionX() + nudge, player.getPositionY() + nudge);
-                myBounds = player.getCollisionBounds();
-                continue;
-            }
-
             // Compute overlap on each axis
-            double overlapLeft = (myBounds.getMinX() + myBounds.getWidth()) - otherBounds.getMinX();
-            double overlapRight = (otherBounds.getMinX() + otherBounds.getWidth()) - myBounds.getMinX();
-            double overlapTop = (myBounds.getMinY() + myBounds.getHeight()) - otherBounds.getMinY();
-            double overlapBottom = (otherBounds.getMinY() + otherBounds.getHeight()) - myBounds.getMinY();
+            double overlapX = (myBounds.getWidth() + otherBounds.getWidth()) / 2
+                    - Math.abs(myCx - otCx);
+            double overlapY = (myBounds.getHeight() + otherBounds.getHeight()) / 2
+                    - Math.abs(myCy - otCy);
 
-            // Resolve along the axis of minimum penetration
-            double resolveX = (overlapLeft < overlapRight) ? -overlapLeft : overlapRight;
-            double resolveY = (overlapTop < overlapBottom) ? -overlapTop : overlapBottom;
+            if (overlapX <= 0 || overlapY <= 0)
+                continue;
 
-            // Clamp the push-out so overlapping players separate gradually
-            if (Math.abs(resolveX) <= Math.abs(resolveY)) {
-                resolveX = Math.max(-MAX_PUSH_PER_FRAME, Math.min(MAX_PUSH_PER_FRAME, resolveX));
-                player.setPosition(player.getPositionX() + resolveX, player.getPositionY());
-                player.setVelocity(0, player.getVelocityY());
+            // Resolve along the axis of minimum penetration — move only the local player
+            if (overlapX < overlapY) {
+                double pushDir = (myCx < otCx) ? -overlapX : overlapX;
+                player.setPosition(player.getPositionX() + pushDir, player.getPositionY());
             } else {
-                resolveY = Math.max(-MAX_PUSH_PER_FRAME, Math.min(MAX_PUSH_PER_FRAME, resolveY));
-                player.setPosition(player.getPositionX(), player.getPositionY() + resolveY);
-                player.setVelocity(player.getVelocityX(), 0);
+                double pushDir = (myCy < otCy) ? -overlapY : overlapY;
+                player.setPosition(player.getPositionX(), player.getPositionY() + pushDir);
             }
 
-            // Recalculate bounds after push-out for subsequent iterations
+            // Recalculate bounds after resolution for subsequent iterations
             myBounds = player.getCollisionBounds();
         }
     }
@@ -278,91 +266,107 @@ public class Logic {
     public static void checkCollisions(double deltaTime, Villager player, Farm farm,
             ArrayList<Nest> nests) {
 
-        Rectangle2D bounds = player.getCollisionBounds();
-        boolean collided = false;
-        Rectangle2D hitBox = null; // NEW: Track what we hit so we know how to slide
+        double prevX = player.getPositionX() - player.getVelocityX() * deltaTime;
+        double prevY = player.getPositionY() - player.getVelocityY() * deltaTime;
 
-        // 1. Screen boundaries handled inline (since they don't have a target 'hitBox')
-        if (player.getPositionX() < 0 || player.getPositionX() + bounds.getWidth() > farm.getWidth()) {
-            player.setPosition(player.getPositionX() - player.getVelocityX() * deltaTime, player.getPositionY());
-            bounds = player.getCollisionBounds(); // Refresh bounds for Y check
+        Rectangle2D bounds = player.getCollisionBounds();
+
+        double px = player.getPositionX();
+        double py = player.getPositionY();
+        boolean clampedX = false, clampedY = false;
+        if (px < 0) {
+            px = 0;
+            clampedX = true;
         }
-        if (player.getPositionY() < 0 || player.getPositionY() + bounds.getHeight() > farm.getHeight()) {
-            player.setPosition(player.getPositionX(), player.getPositionY() - player.getVelocityY() * deltaTime);
+        if (py < 0) {
+            py = 0;
+            clampedY = true;
+        }
+        if (px + bounds.getWidth() > farm.getWidth()) {
+            px = farm.getWidth() - bounds.getWidth();
+            clampedX = true;
+        }
+        if (py + bounds.getHeight() > farm.getHeight()) {
+            py = farm.getHeight() - bounds.getHeight();
+            clampedY = true;
+        }
+        if (clampedX || clampedY) {
+            player.setPosition(px, py);
             bounds = player.getCollisionBounds();
         }
 
-        if (!collided && nests != null) {
-            for (Nest nest : nests) {
-                if (nest.getCollisionBounds().intersects(bounds)) {
-                    collided = true;
-                    hitBox = nest.getCollisionBounds();
-                    break;
-                }
-            }
-        }
+        for (int pass = 0; pass < 4; pass++) {
+            Rectangle2D hitBox = findFirstCollision(bounds, nests, farm);
+            if (hitBox == null)
+                break; // No collision — done
 
-        Obstacle[][] grid = farm.getObstacleGrid();
-        if (!collided && grid != null) {
-            for (int r = 0; r < grid.length && !collided; r++) {
-                for (int c = 0; c < grid[r].length && !collided; c++) {
-                    if (grid[r][c] != null && grid[r][c].getCollide() && grid[r][c].intersects(bounds)) {
-                        collided = true;
-                        // Assuming your Obstacle class has a method to get its bounds
-                        hitBox = grid[r][c].getCollisionBounds();
-                    }
-                }
-            }
-        }
-        if (!collided && farm.getHorizontalWallUpper() != null) {
-            for (Obstacle obs : farm.getHorizontalWallUpper())
-                if (obs.getCollide() && obs.intersects(bounds)) {
-                    collided = true;
-                    hitBox = obs.getCollisionBounds();
-                }
-        }
-        if (!collided && farm.getHorizontalWallLower() != null) {
-            for (Obstacle obs : farm.getHorizontalWallLower())
-                if (obs.getCollide() && obs.intersects(bounds)) {
-                    collided = true;
-                    hitBox = obs.getCollisionBounds();
-                }
-        }
-        if (!collided && farm.getVerticalWallLeft() != null) {
-            for (Obstacle obs : farm.getVerticalWallLeft())
-                if (obs.getCollide() && obs.intersects(bounds)) {
-                    collided = true;
-                    hitBox = obs.getCollisionBounds();
-                }
-        }
-        if (!collided && farm.getVerticalWallRight() != null) {
-            for (Obstacle obs : farm.getVerticalWallRight())
-                if (obs.getCollide() && obs.intersects(bounds)) {
-                    collided = true;
-                    hitBox = obs.getCollisionBounds();
-                }
-        }
-
-        // Apply physical bounce-back block
-        if (collided && hitBox != null) {
-
+            // Compute overlap
             double overlapX = Math.min(bounds.getMaxX(), hitBox.getMaxX())
                     - Math.max(bounds.getMinX(), hitBox.getMinX());
             double overlapY = Math.min(bounds.getMaxY(), hitBox.getMaxY())
                     - Math.max(bounds.getMinY(), hitBox.getMinY());
 
+            // Determine push direction based on player center vs obstacle center
+            double playerCx = bounds.getMinX() + bounds.getWidth() / 2;
+            double playerCy = bounds.getMinY() + bounds.getHeight() / 2;
+            double obsCx = hitBox.getMinX() + hitBox.getWidth() / 2;
+            double obsCy = hitBox.getMinY() + hitBox.getHeight() / 2;
+
             if (overlapX < overlapY) {
-                // Allows
-                player.setPosition(
-                        player.getPositionX() - player.getVelocityX() * deltaTime,
-                        player.getPositionY());
+                // Push out horizontally
+                double pushDir = (playerCx < obsCx) ? -overlapX : overlapX;
+                player.setPosition(player.getPositionX() + pushDir, player.getPositionY());
             } else {
-                // Vertical overlap is smaller. We hit the top/bottom. Revert Y, let X slide!
-                player.setPosition(
-                        player.getPositionX(),
-                        player.getPositionY() - player.getVelocityY() * deltaTime);
+                // Push out vertically
+                double pushDir = (playerCy < obsCy) ? -overlapY : overlapY;
+                player.setPosition(player.getPositionX(), player.getPositionY() + pushDir);
+            }
+            bounds = player.getCollisionBounds();
+        }
+    }
+
+    private static Rectangle2D findFirstCollision(Rectangle2D bounds, ArrayList<Nest> nests, Farm farm) {
+        if (nests != null) {
+            for (Nest nest : nests) {
+                if (nest.getCollisionBounds().intersects(bounds)) {
+                    return nest.getCollisionBounds();
+                }
             }
         }
+
+        Obstacle[][] grid = farm.getObstacleGrid();
+        if (grid != null) {
+            for (int r = 0; r < grid.length; r++) {
+                for (int c = 0; c < grid[r].length; c++) {
+                    if (grid[r][c] != null && grid[r][c].getCollide() && grid[r][c].intersects(bounds)) {
+                        return grid[r][c].getCollisionBounds();
+                    }
+                }
+            }
+        }
+
+        if (farm.getHorizontalWallUpper() != null) {
+            for (Obstacle obs : farm.getHorizontalWallUpper())
+                if (obs.getCollide() && obs.intersects(bounds))
+                    return obs.getCollisionBounds();
+        }
+        if (farm.getHorizontalWallLower() != null) {
+            for (Obstacle obs : farm.getHorizontalWallLower())
+                if (obs.getCollide() && obs.intersects(bounds))
+                    return obs.getCollisionBounds();
+        }
+        if (farm.getVerticalWallLeft() != null) {
+            for (Obstacle obs : farm.getVerticalWallLeft())
+                if (obs.getCollide() && obs.intersects(bounds))
+                    return obs.getCollisionBounds();
+        }
+        if (farm.getVerticalWallRight() != null) {
+            for (Obstacle obs : farm.getVerticalWallRight())
+                if (obs.getCollide() && obs.intersects(bounds))
+                    return obs.getCollisionBounds();
+        }
+
+        return null;
     }
 
     public static void handleInput(double deltaTime, Villager player, ArrayList<String> input) {
