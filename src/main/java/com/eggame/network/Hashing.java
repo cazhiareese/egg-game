@@ -1,8 +1,20 @@
 package com.eggame.network;
 
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class Hashing {
+
+    public static String getActualLanIP() {
+        try {
+            try (DatagramSocket socket = new DatagramSocket()) {
+                socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+                return socket.getLocalAddress().getHostAddress();
+            }
+        } catch (Exception e) {
+            return "127.0.0.1";
+        }
+    }
 
     // base 36 para alphanumeric
     public static String ipToCode(String ip) {
@@ -25,10 +37,12 @@ public class Hashing {
             int x = combined / 256;
             int y = combined % 256;
             
+            String localIp = getActualLanIP();
             // since same lang naman ung prefix nila kukunin ung first two ung nagiiba lang ung last
-            String localIp = InetAddress.getLocalHost().getHostAddress();
             String[] parts = localIp.split("\\.");
             
+
+  
             return parts[0] + "." + parts[1] + "." + x + "." + y;
         } catch (Exception e) {
             return null;
