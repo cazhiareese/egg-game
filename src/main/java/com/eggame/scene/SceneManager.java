@@ -55,6 +55,9 @@ public class SceneManager {
             this.game = null;
         }
 
+        // Shut down any active server so the port is freed for a new game
+        shutdownServer();
+
         MainMenu menu = new MainMenu(this);
         Scene menuScene = menu.getScene();
 
