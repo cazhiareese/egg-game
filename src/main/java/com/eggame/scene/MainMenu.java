@@ -1,26 +1,16 @@
 package com.eggame.scene;
 
-import java.net.InetAddress;
-
 import com.eggame.network.GameServer;
-import com.eggame.network.PacketType;
+import com.eggame.network.Hashing;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.util.Enumeration;
-
-import com.eggame.network.GameServer;
-
-import javafx.animation.TranslateTransition;
 import javafx.animation.ScaleTransition;
-import javafx.geometry.Insets;
+import javafx.animation.TranslateTransition;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -132,7 +122,6 @@ public class MainMenu {
         createServer.setOnAction(e -> {
             // creating server instance
             GameServer server = new GameServer();
-
             try {
                 java.net.DatagramSocket testSocket = new java.net.DatagramSocket(9876);
                 testSocket.close();
@@ -161,11 +150,14 @@ public class MainMenu {
             new Thread(() -> {
                 try {
                     Thread.sleep(300);
-                    String localIp = InetAddress.getLocalHost().getHostAddress();
+                    String localIp =  Hashing.getActualLanIP();
+
+                    String roomCode = Hashing.ipToCode(localIp);
+                    System.out.println("Room Code: " + roomCode);
                     javafx.application.Platform.runLater(() -> {
                         if (this.sceneManager != null) {
                             System.out.println(localIp);
-                            this.sceneManager.switchToLobby("Host", true, localIp);
+                            this.sceneManager.switchToLobby("Host", true, localIp, roomCode);
                         }
                     });
                 } catch (Exception ex) {
@@ -180,15 +172,21 @@ public class MainMenu {
         joinServer.setOnAction(e -> {
             TextInputDialog dialog = new TextInputDialog("192.168.1.");
             dialog.setTitle("Join Game");
-            dialog.setHeaderText("Enter the host's IP address:");
+            dialog.setHeaderText("Enter 4 Digit Code:");
 
-            dialog.showAndWait().ifPresent(ip -> {
-                if (ip.isBlank())
+            dialog.showAndWait().ifPresent(code -> {
+                if (code.isBlank())
                     return;
+                if (code.length() != 4) {
+                   showError("Codes must be exactly 4 characters.");
+                    return;                
+                }
 
+                String ip = Hashing.codeToIp(code);
                 // Go directly to lobby — the Lobby handles the actual JOIN
-                sceneManager.switchToLobby("Player", false, ip);
+                sceneManager.switchToLobby("Player", false, ip, code);
             });
+
         });
 
         Button instructionsButton = createMenuButton("Instructions"); // INSTRUCTIONS BUTTON

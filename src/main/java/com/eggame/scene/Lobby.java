@@ -28,13 +28,13 @@ public class Lobby {
     private DatagramSocket socket;
     private VBox playerListBox;
     private int localPlayerId = -1;
-    private final boolean isHost;
+    private String code;
     private String ip;
 
-   public Lobby(SceneManager sceneManager, String playerName, boolean isHost, String ip) {
+   public Lobby(SceneManager sceneManager, String playerName, boolean isHost, String ip, String code) {
         this.sceneManager = sceneManager;
-        this.isHost = isHost;
         this.ip = ip;
+        this.code = code;
 
         StackPane root = new StackPane();
         root.setStyle("-fx-background-color: #C48C47;"); // Apply background color to the entire screen
@@ -45,6 +45,9 @@ public class Lobby {
 
         Label title = new Label("Waiting for Players to Join...");
         title.setFont(Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 64));
+
+        Label roomCode = new Label("Room Code:" + this.code);
+        roomCode.setFont(Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 32));
 
         // Player list
         playerListBox = new VBox(8);
@@ -62,7 +65,7 @@ public class Lobby {
             }
         });
 
-        centerBox.getChildren().addAll(title, playerListBox, startBtn);
+        centerBox.getChildren().addAll(title, roomCode, playerListBox, startBtn);
 
         Button backButton = createBackButton("<");
         backButton.setOnAction(e -> {
