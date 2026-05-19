@@ -76,17 +76,37 @@ public class Villager extends Sprite {
     }
 
     public void render(GraphicsContext gc) {
+        double time = System.currentTimeMillis() / 1000.0;
+        double yOffset = 0;
+        double vx = getVelocityX();
+        double vy = getVelocityY();
+        boolean isMoving = (vx != 0 || vy != 0);
+
+        if (isMoving) {
+            // if walking bop
+            yOffset = Math.sin(time * 16.0) * 4.0;
+        } else {
+            // slight bob only when idle
+            yOffset = Math.sin(time * 3.0) * 1.5;
+        }
+
         if (headImage == null && hatImage == null) {
-            super.render(gc);
+            if (getImage() != null) {
+                gc.drawImage(getImage(), getPositionX(), getPositionY() + yOffset, width, height);
+            } else {
+                gc.setFill(javafx.scene.paint.Color.MAGENTA);
+                gc.fillRect(getPositionX(), getPositionY() + yOffset, width, height);
+            }
         } else {
             // draw the customized avatar
             if (headImage != null) {
-                gc.drawImage(headImage, getPositionX(), getPositionY() + 10, width, height);
+                gc.drawImage(headImage, getPositionX(), getPositionY() + 10 + yOffset, width, height);
             }
             if (hatImage != null) {
                 double hatWidth = width * 0.9;
                 double hatHeight = height * 0.5;
-                gc.drawImage(hatImage, getPositionX() + (width - hatWidth) / 2, getPositionY() - hatHeight + 30,
+                gc.drawImage(hatImage, getPositionX() + (width - hatWidth) / 2,
+                        getPositionY() - hatHeight + 30 + yOffset,
                         hatWidth,
                         hatHeight);
             }
