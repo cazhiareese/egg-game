@@ -185,34 +185,35 @@ public class MainMenu {
                     showError("Invalid Room Code.");
                     return;
                 }
-
                 new Thread(() -> {
                     try (java.net.DatagramSocket testSocket = new java.net.DatagramSocket()) {
                         java.net.InetAddress address = java.net.InetAddress.getByName(ip);
-                        testSocket.setSoTimeout(2000); // 2 second timeout
                         
-                        // for checking if server is created
+    
+                        testSocket.setSoTimeout(5000); 
+                        
                         byte[] sendData = "PING".getBytes();
                         java.net.DatagramPacket sendPacket = new java.net.DatagramPacket(
                                 sendData, sendData.length, address, 9876);
                         testSocket.send(sendPacket);
 
-                        // receive a response
                         byte[] recvData = new byte[1024];
                         java.net.DatagramPacket recvPacket = new java.net.DatagramPacket(recvData, recvData.length);
+                        
+                        // wait for up to 5 seconds before throwing an Exception
                         testSocket.receive(recvPacket);
 
-                        // check if pong was sent
                         String response = new String(recvPacket.getData(), 0, recvPacket.getLength());
-                        
                         if (response.equals("PONG")) {
                             javafx.application.Platform.runLater(() -> {
                                 sceneManager.switchToLobby("Player", false, ip, code);
                             });
-                        } else {
-                            throw new Exception("Invalid server response");
                         }
-
+                    } catch (java.net.SocketTimeoutException er) {
+                        // Specifically catch the timeout to give a better error message
+                        javafx.application.Platform.runLater(() -> {
+                            showError("Connection timed out. The server is taking too long to respond.");
+                        });
                     } catch (Exception ex) {
                         javafx.application.Platform.runLater(() -> {
                             showError("No game found at code: " + code.toUpperCase());
