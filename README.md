@@ -1,4 +1,4 @@
-# egg-game
+# Egg Hunt!
 
 ### CMSC 137: Data Communications and Networking Project (2nd Sem 2025-2026)
 
