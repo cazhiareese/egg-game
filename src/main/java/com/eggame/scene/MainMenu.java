@@ -1,7 +1,5 @@
 package com.eggame.scene;
 
-import java.net.InetAddress;
-
 import com.eggame.network.GameServer;
 import com.eggame.network.Hashing;
 
@@ -152,7 +150,8 @@ public class MainMenu {
             new Thread(() -> {
                 try {
                     Thread.sleep(300);
-                    String localIp = InetAddress.getLocalHost().getHostAddress();
+                    String localIp =  Hashing.getActualLanIP();
+
                     String roomCode = Hashing.ipToCode(localIp);
                     System.out.println("Room Code: " + roomCode);
                     javafx.application.Platform.runLater(() -> {
