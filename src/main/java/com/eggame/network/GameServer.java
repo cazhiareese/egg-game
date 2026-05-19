@@ -167,7 +167,6 @@ public class GameServer {
             }
         }
 
-        String playerName = parts[1];
         int id = -1;
 
         // find a disconnected slot
@@ -179,11 +178,12 @@ public class GameServer {
         }
         if (id == -1) {
             id = nextPlayerId++;
-            Villager v = new Villager(playerName);
+            Villager v = new Villager("Player " + (id + 1));
             v.setPlayerId(id);
             villagers.add(v);
         }
         Villager v = villagers.get(id);
+        String playerName = "Player " + (id + 1);
         v.setName(playerName);
         v.getEggTray().getEggs().clear();
         v.setEggsReturned(0);

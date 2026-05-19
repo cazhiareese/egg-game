@@ -325,13 +325,13 @@ public class Game {
 
             // Create remote villager if we haven't seen them yet
             while (villagers.size() <= i) {
-                Villager remote = new Villager("Player " + i);
+                Villager remote = new Villager("Player " + (villagers.size() + 1));
                 villagers.add(remote);
             }
 
             Villager v = villagers.get(i);
             if ("Remote".equals(v.getName())) {
-                v = new Villager("Player " + i);
+                v = new Villager("Player " + (i + 1));
                 villagers.set(i, v);
             }
 
@@ -498,9 +498,17 @@ public class Game {
         Villager localPlayer = villagers.get(localPlayerId);
         int myReturned = localPlayer.getEggsReturned();
 
-        // Find the winner (player with most eggs returned)
-        Villager winner = villagers.get(0);
+        // Filter out placeholder "Remote" villagers
+        ArrayList<Villager> activePlayers = new ArrayList<>();
         for (Villager v : villagers) {
+            if (!"Remote".equals(v.getName())) {
+                activePlayers.add(v);
+            }
+        }
+
+        // Find the winner (player with most eggs returned)
+        Villager winner = localPlayer;
+        for (Villager v : activePlayers) {
             if (v.getEggsReturned() > winner.getEggsReturned()) {
                 winner = v;
             }
@@ -512,9 +520,9 @@ public class Game {
         // Build scoreboard
         StringBuilder sb = new StringBuilder();
         sb.append("Your Eggs Returned: ").append(myReturned).append("\n");
-        if (villagers.size() > 1) {
+        if (activePlayers.size() > 1) {
             // Sort by eggs returned (descending) for display
-            ArrayList<Villager> sorted = new ArrayList<>(villagers);
+            ArrayList<Villager> sorted = new ArrayList<>(activePlayers);
             sorted.sort((a, b) -> b.getEggsReturned() - a.getEggsReturned());
             for (int i = 0; i < sorted.size(); i++) {
                 Villager v = sorted.get(i);
