@@ -1,9 +1,15 @@
 package com.eggame.scene;
 
+import java.net.InetAddress;
+
+import com.eggame.network.GameServer;
+import com.eggame.network.PacketType;
+
 import javafx.animation.TranslateTransition;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
@@ -112,10 +118,85 @@ public class MainMenu {
         }
         
         //Buttons
-        Button playButton = createMenuButton("Play");   //PLAY BUTTON
-        playButton.setOnAction(e -> {
-            if (this.sceneManager != null) {
-                this.sceneManager.switchToGame();
+        Button createServer = createMenuButton("Create Game");   //PLAY BUTTON
+        createServer.setOnAction(e -> {
+            // creating server instance
+            GameServer server = new GameServer();
+            
+            try {
+                java.net.DatagramSocket testSocket = new java.net.DatagramSocket(9876);
+                testSocket.close(); 
+            } catch (Exception ex) {
+                // Port is in use! Show the error safely on the JavaFX thread
+                javafx.application.Platform.runLater(() -> {
+                    showError("A server is already running on this machine.");
+                });
+                
+
+                return; 
+            }
+            
+            Thread serverThread = new Thread(() -> {
+                try {
+                    server.run(); 
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
+            serverThread.setDaemon(true);
+            serverThread.start();
+            
+            sceneManager.setActiveServer(server, serverThread); 
+
+            // Small delay so server is ready before client connects
+            new Thread(() -> {
+                try {
+                    Thread.sleep(300);
+                    String localIp = InetAddress.getLocalHost().getHostAddress();
+                    javafx.application.Platform.runLater(() -> {
+                        if (this.sceneManager != null) {
+                            System.out.println(localIp);
+                            this.sceneManager.switchToLobby("Host", true, localIp); 
+                        }
+                    });
+                } catch (Exception ex) {
+                    javafx.application.Platform.runLater(() -> {
+                        showError("Network Error");
+                    });                }
+            }).start();
+        });
+
+        Button joinServer = createMenuButton("Join Game");   //PLAY BUTTON
+        joinServer.setOnAction(e -> {
+        if (this.sceneManager != null) {
+            TextInputDialog dialog = new TextInputDialog("192.168.1.");
+            dialog.setTitle("Join Game");
+            dialog.setHeaderText("Enter the host's IP address:");
+
+            dialog.showAndWait().ifPresent(ip -> {
+                if (ip.isBlank()) return;
+                try (java.net.DatagramSocket testSocket = new java.net.DatagramSocket()){
+                    InetAddress address = InetAddress.getByName(ip);
+                    String testMsg = PacketType.JOIN + "|ConnectionTest";
+                    testSocket.setSoTimeout(2000);
+                    byte[] sendData = testMsg.getBytes();
+                    java.net.DatagramPacket sendPacket = new java.net.DatagramPacket(
+                            sendData, sendData.length, java.net.InetAddress.getByName(ip), 9876);
+                    testSocket.send(sendPacket);
+
+                    byte[] recvData = new byte[1024];
+                    java.net.DatagramPacket recvPacket = new java.net.DatagramPacket(recvData, recvData.length);
+                    
+                    testSocket.receive(recvPacket);
+                    if (!address.isReachable(2000)) { // 2 second timeout
+                        showError("Cannot reach host at " + ip + ". Make sure the host has started a game.");
+                        return;
+                    }
+                        sceneManager.switchToLobby("Player", false,  ip); // isHost = false
+                } catch (Exception ex) {
+                    showError("Invalid IP address: " + ip);
+                }
+            });
             }
         });
 
@@ -132,7 +213,7 @@ public class MainMenu {
                 // TODO: Switch to customize scene
         });
 
-        uiLayer.getChildren().addAll(title, playButton, instructionsButton, customizeButton);
+        uiLayer.getChildren().addAll(title, createServer, joinServer, instructionsButton, customizeButton);
 
         //sample sprite layer
         Pane spriteLayer = new Pane();
@@ -198,6 +279,15 @@ public class MainMenu {
         btn.setOnMouseExited(e -> btn.setStyle(defaultStyle));
         
         return btn;
+    }
+    private void showError(String message) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+            javafx.scene.control.Alert.AlertType.ERROR
+        );
+        alert.setTitle("Connection Error");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     public Scene getScene() {

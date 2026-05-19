@@ -1,8 +1,15 @@
 package com.eggame.network;
 
-import java.net.*;
-import java.util.*;
-import com.eggame.entities.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.eggame.entities.Egg;
+import com.eggame.entities.Nest;
+import com.eggame.entities.Villager;
 import com.eggame.map.Farm;
 import com.eggame.rules.Logic;
 import com.eggame.scene.Game;
@@ -13,6 +20,8 @@ public class GameServer {
     private static final int WORLD_HEIGHT = Game.WINDOW_HEIGHT * 2;
     private static final double TICK_RATE = 50.0; // ms per tick
     private static final double GAME_DURATION = 121.0;
+    private volatile boolean lobbyActive = true;
+    private volatile boolean gameStarted = false;
 
     private DatagramSocket socket;
     private Map<Integer, InetSocketAddress> clients = new HashMap<>();
@@ -24,6 +33,7 @@ public class GameServer {
     private ArrayList<Nest> nests = new ArrayList<>();
     private Farm farm;
     private double timeRemaining = GAME_DURATION;
+    private volatile boolean running = true;
 
     public static void main(String[] args) throws Exception {
         javafx.application.Platform.startup(() -> {
@@ -51,7 +61,7 @@ public class GameServer {
 
     private void receiveLoop() throws Exception {
         byte[] buffer = new byte[1024];
-        while (true) {
+        while (running) {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
 
@@ -61,12 +71,46 @@ public class GameServer {
             if (type.equals(PacketType.JOIN)) {
                 handleJoin(parts, packet);
             } else if (type.equals(PacketType.INPUT)) {
-                handleInput(parts);
+                int playerId = Integer.parseInt(parts[1]);
+                clients.put(playerId, new java.net.InetSocketAddress(packet.getAddress(), packet.getPort()));
+                handleInput(parts, packet);
+            } else if (type.equals(PacketType.START_GAME)) {
+                handleStartGame(parts);
+            } else if (type.equals(PacketType.CLIENT_LEFT)) {
+                handleClientLeft(parts);
             }
         }
     }
 
+    private void handleStartGame(String[] parts)throws Exception {
+        int requesterId = Integer.parseInt(parts[1]);
+        if (requesterId != 0) return; // only host (player 0) can start
+
+        lobbyActive = false;
+        gameStarted = true;
+
+        // Notify all clients
+        String msg = PacketType.START_GAME + "|go";
+        byte[] data = msg.getBytes();
+        for (InetSocketAddress client : clients.values()) {
+            socket.send(new DatagramPacket(data, data.length, client));
+        }
+    }
+
     private void handleJoin(String[] parts, DatagramPacket packet) throws Exception {
+
+        for (Map.Entry<Integer, InetSocketAddress> entry : clients.entrySet()) {
+            InetSocketAddress address = new InetSocketAddress(packet.getAddress(), packet.getPort());
+            if (entry.getValue().equals(address)) {
+                // Already registered — just resend ACK
+                String ack = PacketType.JOIN_ACK + "|" + entry.getKey() + "|" + clients.size();
+                byte[] ackData = ack.getBytes();
+                socket.send(new DatagramPacket(ackData, ackData.length,
+                        packet.getAddress(), packet.getPort()));
+                return;
+            }
+        }
+
         String playerName = parts[1];
         int id = nextPlayerId++;
         clients.put(id, new InetSocketAddress(packet.getAddress(), packet.getPort()));
@@ -84,10 +128,13 @@ public class GameServer {
 
     }
 
-    private void handleInput(String[] parts) {
+    private void handleInput(String[] parts, DatagramPacket packet) {
         int playerId = Integer.parseInt(parts[1]);
         if (playerId < 0 || playerId >= villagers.size())
             return;
+
+        clients.put(playerId, new InetSocketAddress(packet.getAddress(), packet.getPort()));
+
         double posX = Double.parseDouble(parts[2]);
         double posY = Double.parseDouble(parts[3]);
         double velX = Double.parseDouble(parts[4]);
@@ -100,7 +147,16 @@ public class GameServer {
 
     private void gameLoop() {
 
-        while (timeRemaining > 0) {
+        while (lobbyActive) {
+            try {
+                broadcastLobbyState();
+                Thread.sleep(500);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        while (running && timeRemaining > 0) {
             double deltaTime = 0.05;
 
             Logic.serverUpdate(deltaTime, villagers, eggs, nests, farm);
@@ -116,6 +172,34 @@ public class GameServer {
 
         }
     }
+
+    private void handleClientLeft(String[] parts) {
+        int playerId = Integer.parseInt(parts[1]);
+        
+        // Remove from the network clients map
+        clients.remove(playerId);
+        
+        // Remove from the game state list
+        // (Using removeIf is the safest way to remove an object by a specific property)
+        villagers.removeIf(v -> v.getPlayerId() == playerId);
+        
+        System.out.println("Player " + playerId + " has left the lobby.");
+    }
+
+    private void broadcastLobbyState() throws Exception {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(PacketType.LOBBY_STATE).append("|").append(villagers.size());
+            for (Villager v : villagers) {
+                sb.append("|").append(v.getName()); // make sure getName() exists
+            }
+        String msg = sb.toString();
+        byte[] data = msg.getBytes();
+        for (InetSocketAddress client : clients.values()) {
+            socket.send(new DatagramPacket(data, data.length, client));
+        }
+    }
+
 
     private void broadcastGameState() throws Exception {
         StringBuilder sb = new StringBuilder();
@@ -143,6 +227,29 @@ public class GameServer {
         for (InetSocketAddress client : clients.values()) {
             DatagramPacket packet = new DatagramPacket(data, data.length, client);
             socket.send(packet);
+        }
+    }
+
+    public void shutdown() {
+        running = false;
+        lobbyActive = false; // Add this line to break out of the lobby loop
+
+        try {
+            // Notify all clients
+            String msg = PacketType.HOST_LEFT + "|Server closed by host";
+            byte[] data = msg.getBytes();
+            for (InetSocketAddress client : new ArrayList<>(clients.values())) {
+                socket.send(new DatagramPacket(data, data.length, client));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // Clear all state
+            clients.clear();
+            villagers.clear();
+            eggs.clear();
+            nests.clear();
+            if (socket != null && !socket.isClosed()) socket.close();
         }
     }
 }

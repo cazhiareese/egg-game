@@ -2,16 +2,18 @@ package com.eggame.scene;
 
 import java.util.ArrayList;
 
+import com.eggame.network.GameServer;
+
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 
 public class SceneManager {
-
+    private GameServer activeServer = null;
+    private Thread serverThread = null;
     private final Stage stage;
     private final ArrayList<String> input;
-
     private Game game;
 
     public SceneManager(Stage stage) {
@@ -19,7 +21,7 @@ public class SceneManager {
         this.input = new ArrayList<>();
     }
 
-    public void switchToGame() {
+    public void switchToGame(String serverIp, int playerId) {
         // Stop any existing game loop
         if (this.game != null) {
             this.game.stop();
@@ -31,9 +33,20 @@ public class SceneManager {
         setScene(gameScene);
         bindInput(gameScene);
 
-        // Start the game loop with shared input
-        game.start(input);
+        // Start the game loop and pass the playerId
+        game.start(input, serverIp, playerId);
     }
+
+    public void switchToLobby(String playerName, boolean isHost, String ip) {
+        // Stop any existing game loop
+        if (this.game != null) {
+            this.game.stop();
+        }
+
+        Lobby lobby = new Lobby(this, playerName, isHost, ip);
+        setScene(lobby.getScene());
+    }
+
 
     public void switchToMainMenu() {
         if (this.game != null) {
@@ -90,5 +103,22 @@ public class SceneManager {
                 input.remove(code);
             }
         });
+    }
+
+
+    public void setActiveServer(GameServer server, Thread thread) {
+        this.activeServer = server;
+        this.serverThread = thread;
+    }
+
+    public void shutdownServer() {
+        if (activeServer != null) {
+            activeServer.shutdown();
+            activeServer = null;
+        }
+        if (serverThread != null) {
+            serverThread.interrupt();
+            serverThread = null;
+        }
     }
 }

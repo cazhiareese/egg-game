@@ -1,7 +1,7 @@
 package com.eggame.network;
 
-import java.net.DatagramSocket;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class GameClient implements Runnable {
@@ -10,6 +10,8 @@ public class GameClient implements Runnable {
     private int serverPort;
     private int playerId = -1;
     private volatile String latestGameState = null;
+    private volatile boolean running = true;
+
 
     public GameClient(String serverIP, int port) throws Exception {
         this.socket = new DatagramSocket();
@@ -58,6 +60,10 @@ public class GameClient implements Runnable {
 
     public int getPlayerId() {
         return playerId;
+    }
+
+    public void setPlayerId(int id) {
+        this.playerId = id;
     }
 
     @Override
