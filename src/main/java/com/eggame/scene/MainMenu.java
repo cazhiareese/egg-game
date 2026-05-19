@@ -3,7 +3,6 @@ package com.eggame.scene;
 import java.net.InetAddress;
 
 import com.eggame.network.GameServer;
-import com.eggame.network.PacketType;
 
 import javafx.animation.TranslateTransition;
 import javafx.geometry.Pos;
@@ -179,7 +178,7 @@ public class MainMenu {
                 new Thread(() -> {
                     try (java.net.DatagramSocket testSocket = new java.net.DatagramSocket()) {
                         InetAddress address = InetAddress.getByName(ip);
-                        String testMsg = PacketType.JOIN + "|ConnectionTest";
+                        String testMsg = "PING";                        
                         testSocket.setSoTimeout(2000); 
                         
                         byte[] sendData = testMsg.getBytes();
@@ -191,7 +190,6 @@ public class MainMenu {
                         byte[] recvData = new byte[1024];
                         java.net.DatagramPacket recvPacket = new java.net.DatagramPacket(recvData, recvData.length);
                         
-                        // This call blocks, but it's okay now because it's in a background thread
                         testSocket.receive(recvPacket);
 
                         // Use Platform.runLater to switch scenes back on the UI thread
