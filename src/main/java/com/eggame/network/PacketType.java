@@ -10,6 +10,7 @@ public class PacketType {
     public static final String ROUND_OVER = "ROUND_OVER";
     public static final String CHAT = "CHAT";
     public static final String RESET = "RESET";
+    public static final String LEAVE = "LEAVE";
 
     public static final String DELIMITER = "|";
 }

@@ -35,7 +35,10 @@ public class WinScene {
         Button backButton = createBackButton("<");
         backButton.setOnAction(e -> {
             if (this.sceneManager != null) {
-                this.sceneManager.resetAndResumeGame();
+                if (this.sceneManager.getGame() != null) {
+                    this.sceneManager.getGame().resetGame();
+                }
+                this.sceneManager.switchToMainMenu();
             }
         });
         StackPane.setAlignment(backButton, Pos.TOP_LEFT);

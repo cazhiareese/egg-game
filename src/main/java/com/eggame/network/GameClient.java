@@ -81,6 +81,20 @@ public class GameClient implements Runnable {
         }
     }
 
+    public void disconnect() {
+        if (playerId != -1) {
+            try {
+                sendMessage(PacketType.LEAVE + "|" + playerId);
+                Thread.sleep(80); // for troubleshooting - give delay for os to send packet
+            } catch (Exception e) {
+
+            }
+        }
+        if (socket != null && !socket.isClosed()) {
+            socket.close();
+        }
+    }
+
     public String getLatestGameState() {
         String state = latestGameState;
         latestGameState = null; // consume it
@@ -112,6 +126,9 @@ public class GameClient implements Runnable {
                     }
                 }
             } catch (Exception e) {
+                if (socket.isClosed()) {
+                    break;
+                }
                 e.printStackTrace();
             }
         }

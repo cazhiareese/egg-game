@@ -109,6 +109,10 @@ public class Villager extends Sprite {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public int getEggsColleced() {
         return this.eggs.getNumAllEggs();
     }
