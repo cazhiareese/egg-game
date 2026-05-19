@@ -101,6 +101,12 @@ public class GameServer {
         lobbyActive = false;
         gameStarted = true;
 
+        // Refresh lastHeard so players don't immediately time out after lobby
+        long now = System.currentTimeMillis();
+        for (Integer id : clients.keySet()) {
+            lastHeard.put(id, now);
+        }
+
         // Notify all clients
         String msg = PacketType.START_GAME + "|go";
         byte[] data = msg.getBytes();

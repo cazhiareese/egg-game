@@ -176,7 +176,7 @@ public class MainMenu {
             }).start();
         });
 
-        Button joinServer = createMenuButton("Join Game"); // PLAY BUTTON
+        Button joinServer = createMenuButton("Join Game");
         joinServer.setOnAction(e -> {
             TextInputDialog dialog = new TextInputDialog("192.168.1.");
             dialog.setTitle("Join Game");
@@ -186,36 +186,8 @@ public class MainMenu {
                 if (ip.isBlank())
                     return;
 
-                // Start a background thread so the UI doesn't freeze
-                new Thread(() -> {
-                    try (java.net.DatagramSocket testSocket = new java.net.DatagramSocket()) {
-                        InetAddress address = InetAddress.getByName(ip);
-                        String testMsg = PacketType.JOIN + "|ConnectionTest";
-                        testSocket.setSoTimeout(2000);
-
-                        byte[] sendData = testMsg.getBytes();
-                        java.net.DatagramPacket sendPacket = new java.net.DatagramPacket(
-                                sendData, sendData.length, address, 9876);
-
-                        testSocket.send(sendPacket);
-
-                        byte[] recvData = new byte[1024];
-                        java.net.DatagramPacket recvPacket = new java.net.DatagramPacket(recvData, recvData.length);
-
-                        // This call blocks, but it's okay now because it's in a background thread
-                        testSocket.receive(recvPacket);
-
-                        // Use Platform.runLater to switch scenes back on the UI thread
-                        javafx.application.Platform.runLater(() -> {
-                            sceneManager.switchToLobby("Player", false, ip);
-                        });
-
-                    } catch (Exception ex) {
-                        javafx.application.Platform.runLater(() -> {
-                            showError("Cannot reach host at " + ip);
-                        });
-                    }
-                }).start();
+                // Go directly to lobby — the Lobby handles the actual JOIN
+                sceneManager.switchToLobby("Player", false, ip);
             });
         });
 
@@ -230,50 +202,6 @@ public class MainMenu {
         customizeButton.setOnAction(e -> {
             if (this.sceneManager != null) {
                 this.sceneManager.switchToCustomize();
-            }
-        });
-
-        // HOST SERVER BUTTON
-        Button hostButton = createMenuButton("Host Server");
-        Text serverInfoText = new Text();
-        try {
-            Font infoFont = Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 18);
-            if (infoFont != null) {
-                serverInfoText.setFont(infoFont);
-            } else {
-                serverInfoText.setFont(Font.font("Quicksand", 14));
-            }
-        } catch (Exception e) {
-            serverInfoText.setFont(Font.font("Quicksand", 14));
-        }
-        serverInfoText.setFill(javafx.scene.paint.Color.web("#FFF7D6"));
-        serverInfoText.setStroke(javafx.scene.paint.Color.web("#60312B"));
-        serverInfoText.setStrokeType(javafx.scene.shape.StrokeType.OUTSIDE);
-        serverInfoText.setStrokeWidth(2);
-        serverInfoText.setTranslateX(-340);
-        serverInfoText.setTranslateY(-70);
-        serverInfoText.setVisible(false);
-
-        hostButton.setOnAction(e -> {
-            if (!serverRunning) {
-                serverRunning = true;
-                Thread serverThread = new Thread(() -> {
-                    try {
-                        new GameServer().run();
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
-                });
-                serverThread.setDaemon(true);
-                serverThread.start();
-
-                String ip = getLocalIPAddress();
-                serverInfoText.setText("Server running at: " + ip + ":9876");
-                serverInfoText.setVisible(true);
-
-                // Disable button to prevent starting multiple servers
-                hostButton.setDisable(true);
-                hostButton.setOpacity(0.5);
             }
         });
 

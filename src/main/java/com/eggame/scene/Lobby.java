@@ -21,6 +21,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 
 public class Lobby {
+    private boolean startGameSent = false;
 
     private Scene scene;
     private SceneManager sceneManager;
@@ -53,7 +54,13 @@ public class Lobby {
         startBtn.setVisible(isHost); // You can remove this if you want anyone to start!
         startBtn.setPrefWidth(200);
         startBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 20;");
-        startBtn.setOnAction(e -> sendStartGame());
+        startBtn.setOnAction(e -> {
+            if (!startGameSent) {
+                startGameSent = true;
+                startBtn.setDisable(true);
+                sendStartGame();
+            }
+        });
 
         centerBox.getChildren().addAll(title, playerListBox, startBtn);
 
@@ -146,9 +153,9 @@ public class Lobby {
 
             case PacketType.START_GAME:
                 Platform.runLater(() -> {
-                    cleanup();
-                    // Pass the localPlayerId here
+                    // Switch to game first, then cleanup the lobby socket
                     this.sceneManager.switchToGame(this.ip, this.localPlayerId);
+                    cleanup();
                 });
                 break;
             case PacketType.HOST_LEFT:
@@ -161,6 +168,7 @@ public class Lobby {
     }
 
     private void sendStartGame() {
+        if (socket == null || socket.isClosed()) return;
         try {
             String msg = PacketType.START_GAME + "|" + localPlayerId;
             byte[] data = msg.getBytes();

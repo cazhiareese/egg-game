@@ -36,7 +36,7 @@ public class SceneManager {
         bindInput(gameScene);
 
         // Start the game loop and pass the playerId
-        game.start(input, serverIp, playerId);
+        game.start(input, serverIp, playerId, avatarState);
     }
 
     public void switchToLobby(String playerName, boolean isHost, String ip) {
