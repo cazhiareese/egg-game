@@ -1,7 +1,7 @@
 package com.eggame.network;
 
-import java.net.DatagramSocket;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -13,6 +13,8 @@ public class GameClient implements Runnable {
     private int serverPort;
     private int playerId = -1;
     private volatile String latestGameState = null;
+    private volatile boolean running = true;
+
     /** Incoming chat messages waiting to be displayed — thread-safe deque. */
     private final Deque<String> pendingChats = new ArrayDeque<>();
 
@@ -103,6 +105,10 @@ public class GameClient implements Runnable {
 
     public int getPlayerId() {
         return playerId;
+    }
+
+    public void setPlayerId(int id) {
+        this.playerId = id;
     }
 
     @Override

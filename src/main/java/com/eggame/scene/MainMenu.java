@@ -1,6 +1,11 @@
 package com.eggame.scene;
 
 import java.net.InetAddress;
+
+import com.eggame.network.GameServer;
+import com.eggame.network.PacketType;
+
+import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
 
@@ -12,6 +17,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -122,11 +128,95 @@ public class MainMenu {
         }
 
         // Buttons
-        Button playButton = createMenuButton("Play"); // PLAY BUTTON
-        playButton.setOnAction(e -> {
-            if (this.sceneManager != null) {
-                this.sceneManager.switchToGame();
+        Button createServer = createMenuButton("Create Game"); // PLAY BUTTON
+        createServer.setOnAction(e -> {
+            // creating server instance
+            GameServer server = new GameServer();
+
+            try {
+                java.net.DatagramSocket testSocket = new java.net.DatagramSocket(9876);
+                testSocket.close();
+            } catch (Exception ex) {
+                // Port is in use! Show the error safely on the JavaFX thread
+                javafx.application.Platform.runLater(() -> {
+                    showError("A server is already running on this machine.");
+                });
+
+                return;
             }
+
+            Thread serverThread = new Thread(() -> {
+                try {
+                    server.run();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
+            serverThread.setDaemon(true);
+            serverThread.start();
+
+            sceneManager.setActiveServer(server, serverThread);
+
+            // Small delay so server is ready before client connects
+            new Thread(() -> {
+                try {
+                    Thread.sleep(300);
+                    String localIp = InetAddress.getLocalHost().getHostAddress();
+                    javafx.application.Platform.runLater(() -> {
+                        if (this.sceneManager != null) {
+                            System.out.println(localIp);
+                            this.sceneManager.switchToLobby("Host", true, localIp);
+                        }
+                    });
+                } catch (Exception ex) {
+                    javafx.application.Platform.runLater(() -> {
+                        showError("Network Error");
+                    });
+                }
+            }).start();
+        });
+
+        Button joinServer = createMenuButton("Join Game"); // PLAY BUTTON
+        joinServer.setOnAction(e -> {
+            TextInputDialog dialog = new TextInputDialog("192.168.1.");
+            dialog.setTitle("Join Game");
+            dialog.setHeaderText("Enter the host's IP address:");
+
+            dialog.showAndWait().ifPresent(ip -> {
+                if (ip.isBlank())
+                    return;
+
+                // Start a background thread so the UI doesn't freeze
+                new Thread(() -> {
+                    try (java.net.DatagramSocket testSocket = new java.net.DatagramSocket()) {
+                        InetAddress address = InetAddress.getByName(ip);
+                        String testMsg = PacketType.JOIN + "|ConnectionTest";
+                        testSocket.setSoTimeout(2000);
+
+                        byte[] sendData = testMsg.getBytes();
+                        java.net.DatagramPacket sendPacket = new java.net.DatagramPacket(
+                                sendData, sendData.length, address, 9876);
+
+                        testSocket.send(sendPacket);
+
+                        byte[] recvData = new byte[1024];
+                        java.net.DatagramPacket recvPacket = new java.net.DatagramPacket(recvData, recvData.length);
+
+                        // This call blocks, but it's okay now because it's in a background thread
+                        testSocket.receive(recvPacket);
+
+                        // Use Platform.runLater to switch scenes back on the UI thread
+                        javafx.application.Platform.runLater(() -> {
+                            sceneManager.switchToLobby("Player", false, ip);
+                        });
+
+                    } catch (Exception ex) {
+                        javafx.application.Platform.runLater(() -> {
+                            showError("Cannot reach host at " + ip);
+                        });
+                    }
+                }).start();
+            });
         });
 
         Button instructionsButton = createMenuButton("Instructions"); // INSTRUCTIONS BUTTON
@@ -187,7 +277,7 @@ public class MainMenu {
             }
         });
 
-        uiLayer.getChildren().addAll(title, playButton, instructionsButton, customizeButton, hostButton, serverInfoText);
+        uiLayer.getChildren().addAll(title, createServer, joinServer, instructionsButton, customizeButton);
 
         // sample sprite layer
         Pane spriteLayer = new Pane();
@@ -268,27 +358,13 @@ public class MainMenu {
         return btn;
     }
 
-    /**
-     * Returns the local (non-loopback) IP address of this machine.
-     */
-    private String getLocalIPAddress() {
-        try {
-            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-            while (interfaces.hasMoreElements()) {
-                NetworkInterface iface = interfaces.nextElement();
-                if (iface.isLoopback() || !iface.isUp()) continue;
-                Enumeration<InetAddress> addresses = iface.getInetAddresses();
-                while (addresses.hasMoreElements()) {
-                    InetAddress addr = addresses.nextElement();
-                    if (addr instanceof java.net.Inet4Address) {
-                        return addr.getHostAddress();
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "127.0.0.1";
+    private void showError(String message) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                javafx.scene.control.Alert.AlertType.ERROR);
+        alert.setTitle("Connection Error");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     public Scene getScene() {

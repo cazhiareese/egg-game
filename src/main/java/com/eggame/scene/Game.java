@@ -1,7 +1,6 @@
 package com.eggame.scene;
 
 import java.util.ArrayList;
-import java.util.Optional;
 
 import com.eggame.entities.Camera;
 import com.eggame.entities.Egg;
@@ -19,7 +18,6 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -126,29 +124,23 @@ public class Game {
         root.getChildren().add(chatInput);
     }
 
-    public void start(ArrayList<String> input, AvatarState avatarState) {
+    public void start(ArrayList<String> input, String serverIp, int playerId, AvatarState avatarState) {
         this.input = input;
         this.localAvatarState = avatarState;
 
-        // Create the farm and draw the background once
-        this.farm = new Farm(WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
-        // farm.renderBackground(bgGc);
+        this.localPlayerId = playerId;
 
-        // Initialize entity lists
+        this.farm = new Farm(WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
         this.villagers = new ArrayList<Villager>();
         this.eggs = new ArrayList<Egg>();
         this.nests = new ArrayList<Nest>();
         this.mainCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        // Connect to server first to get player ID
         try {
-            TextInputDialog dialog = new TextInputDialog("127.0.0.1");
-            dialog.setTitle("Connect to Server");
-            dialog.setHeaderText("Enter the host's IP address:");
-            Optional<String> result = dialog.showAndWait();
-            String serverIP = result.orElse("127.0.0.1");
-            client = new GameClient(serverIP, 9876);
-            localPlayerId = client.join("Player");
+            client = new GameClient(serverIp, 9876);
+
+            client.setPlayerId(this.localPlayerId);
+
             Thread receiveThread = new Thread(() -> client.run());
             receiveThread.setDaemon(true);
             receiveThread.start();
