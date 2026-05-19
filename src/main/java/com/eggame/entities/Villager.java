@@ -19,9 +19,17 @@ public class Villager extends Sprite {
     private Image imageLeft;
     private Image imageRight;
     private Image imageIdle;
+    private int playerId = -1;
+
+    private int headIndex = -1;
+    private int hatIndex = -1;
+
+    private Image headImage;
+    private Image hatImage;
 
     public Villager(String name) {
         this.name = name;
+
         this.eggs = new EggTray(this);
         this.eggsCollected = this.eggs.getNumAllEggs();
         this.eggsReturned = 0;
@@ -68,7 +76,41 @@ public class Villager extends Sprite {
     }
 
     public void render(GraphicsContext gc) {
-        super.render(gc);
+        double time = System.currentTimeMillis() / 1000.0;
+        double yOffset = 0;
+        double vx = getVelocityX();
+        double vy = getVelocityY();
+        boolean isMoving = (vx != 0 || vy != 0);
+
+        if (isMoving) {
+            // if walking bop
+            yOffset = Math.sin(time * 16.0) * 4.0;
+        } else {
+            // slight bob only when idle
+            yOffset = Math.sin(time * 3.0) * 1.5;
+        }
+
+        if (headImage == null && hatImage == null) {
+            if (getImage() != null) {
+                gc.drawImage(getImage(), getPositionX(), getPositionY() + yOffset, width, height);
+            } else {
+                gc.setFill(javafx.scene.paint.Color.MAGENTA);
+                gc.fillRect(getPositionX(), getPositionY() + yOffset, width, height);
+            }
+        } else {
+            // draw the customized avatar
+            if (headImage != null) {
+                gc.drawImage(headImage, getPositionX(), getPositionY() + 10 + yOffset, width, height);
+            }
+            if (hatImage != null) {
+                double hatWidth = width * 0.9;
+                double hatHeight = height * 0.5;
+                gc.drawImage(hatImage, getPositionX() + (width - hatWidth) / 2,
+                        getPositionY() - hatHeight + 30 + yOffset,
+                        hatWidth,
+                        hatHeight);
+            }
+        }
     }
 
     public void setPosition(double x, double y) {
@@ -85,6 +127,10 @@ public class Villager extends Sprite {
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getEggsColleced() {
@@ -115,8 +161,52 @@ public class Villager extends Sprite {
         eggsReturned++;
     }
 
+    public void setEggsReturned(int count) {
+        this.eggsReturned = count;
+    }
+
     public void resetEggsReturned() {
         eggsReturned = 0;
         this.eggs.getEggs().clear();
+    }
+
+    public int getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(int playerId) {
+        this.playerId = playerId;
+    }
+
+    public int getHeadIndex() {
+        return headIndex;
+    }
+
+    public int getHatIndex() {
+        return hatIndex;
+    }
+
+    // set avatar customization from customization menu
+    public void setAvatar(int headIdx, int hatIdx) {
+        this.headIndex = headIdx;
+        this.hatIndex = hatIdx;
+
+        try {
+            var headStream = getClass().getResourceAsStream("/com/eggame/customization/head_" + headIdx + ".png");
+            if (headStream != null) {
+                this.headImage = new Image(headStream);
+            }
+        } catch (Throwable e) {
+
+        }
+
+        try {
+            var hatStream = getClass().getResourceAsStream("/com/eggame/customization/hat_" + hatIdx + ".png");
+            if (hatStream != null) {
+                this.hatImage = new Image(hatStream);
+            }
+        } catch (Throwable e) {
+
+        }
     }
 }

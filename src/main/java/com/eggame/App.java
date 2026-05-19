@@ -14,7 +14,7 @@ public class App extends Application {
         primaryStage.setTitle(GAME_TITLE);
 
         SceneManager sceneManager = new SceneManager(primaryStage);
-        sceneManager.switchToGame();
+        sceneManager.switchToMainMenu();
 
         primaryStage.show();
     }

@@ -12,8 +12,8 @@ public class Sprite {
     private double velocityX;
     private double velocityY;
 
-    private double width;
-    private double height;
+    protected double width;
+    protected double height;
     private boolean sizeLocked = false;
 
     public void setSize(double w, double h) {
@@ -28,6 +28,10 @@ public class Sprite {
             width = i.getWidth();
             height = i.getHeight();
         }
+    }
+
+    public Image getImage() {
+        return image;
     }
 
     // overload set image by passing file name (loads from classpath)
