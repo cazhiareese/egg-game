@@ -46,65 +46,69 @@ public class Farm {
         double startY = (height - (ROWS * TILE_SIZE + (ROWS - 1) * SPACING)) / 2.0;
 
         try {
+            java.io.InputStream is = getClass().getResourceAsStream("/com/eggame/map/map_layout.txt");
+            if (is == null) {
+                System.out.println("[DEBUG] Failed to load map_layout.txt: Resource not found");
+            } else {
+                java.util.Scanner scanner = new java.util.Scanner(is);
 
-            java.io.File file = new java.io.File("src/main/java/com/eggame/map/map_layout.txt");
-            java.util.Scanner scanner = new java.util.Scanner(file);
+                for (int row = 0; row < ROWS && scanner.hasNextLine(); row++) {
+                    String line = scanner.nextLine().trim();
+                    String[] tokens = line.split("\\s+");
+                    for (int col = 0; col < COLS && col < tokens.length; col++) {
+                        String tileType = tokens[col];
+                        // Create new tile parsing tile string 1 to 5 into .png filename
+                        Tile tile = new Tile();
+                        tile.setImage("tile" + tileType + ".png");
 
-            for (int row = 0; row < ROWS && scanner.hasNextLine(); row++) {
-                String line = scanner.nextLine().trim();
-                String[] tokens = line.split("\\s+");
-                for (int col = 0; col < COLS && col < tokens.length; col++) {
-                    String tileType = tokens[col];
-                    // Create new tile parsing tile string 1 to 5 into .png filename
-                    Tile tile = new Tile();
-                    tile.setImage("tile" + tileType + ".png");
+                        // Factor in spacing dynamically across the index offsets
+                        double posX = startX + col * (TILE_SIZE + SPACING);
+                        double posY = startY + row * (TILE_SIZE + SPACING);
 
-                    // Factor in spacing dynamically across the index offsets
-                    double posX = startX + col * (TILE_SIZE + SPACING);
-                    double posY = startY + row * (TILE_SIZE + SPACING);
-
-                    tile.setPosition(posX, posY);
-                    mapGrid[row][col] = tile;
+                        tile.setPosition(posX, posY);
+                        mapGrid[row][col] = tile;
+                    }
                 }
+                scanner.close();
+                System.out.println("[DEBUG] Map loaded successfully");
             }
-            scanner.close();
-
-            System.out.println("[DEBUG] Map loaded successfully");
         } catch (Exception e) {
             System.out.println("[DEBUG] Failed to load map_layout.txt: " + e.getMessage());
         }
 
         try {
-            java.io.File file = new java.io.File("src/main/java/com/eggame/map/obstacle_layout.txt");
-            java.util.Scanner scanner = new java.util.Scanner(file);
+            java.io.InputStream is = getClass().getResourceAsStream("/com/eggame/map/obstacle_layout.txt");
+            if (is == null) {
+                System.out.println("[DEBUG] Failed to load obstacle_layout.txt: Resource not found");
+            } else {
+                java.util.Scanner scanner = new java.util.Scanner(is);
 
-            for (int row = 0; row < ROWS && scanner.hasNextLine(); row++) {
-                String line = scanner.nextLine().trim();
-                String[] tokens = line.split("\\s+");
-                for (int col = 0; col < COLS && col < tokens.length; col++) {
-                    String obstacleType = tokens[col];
+                for (int row = 0; row < ROWS && scanner.hasNextLine(); row++) {
+                    String line = scanner.nextLine().trim();
+                    String[] tokens = line.split("\\s+");
+                    for (int col = 0; col < COLS && col < tokens.length; col++) {
+                        String obstacleType = tokens[col];
 
-                    if (obstacleType.equals("0")) {
-                        continue;
+                        if (obstacleType.equals("0")) {
+                            continue;
+                        }
+                        // Create new tile parsing tile string 1 to 5 into .png filename
+                        Obstacle obstacle = new Obstacle(true);
+                        obstacle.setImage("obstacle" + obstacleType + ".png");
+                        // Factor in spacing dynamically across the index offsets
+                        double posX = startX + col * (TILE_SIZE + SPACING);
+                        double posY = startY + row * (TILE_SIZE + SPACING);
+
+                        obstacle.setPosition(posX, posY);
+                        obstacleGrid[row][col] = obstacle;
                     }
-                    // Create new tile parsing tile string 1 to 5 into .png filename
-                    Obstacle obstacle = new Obstacle(true);
-                    obstacle.setImage("obstacle" + obstacleType + ".png");
-                    // Factor in spacing dynamically across the index offsets
-                    double posX = startX + col * (TILE_SIZE + SPACING);
-                    double posY = startY + row * (TILE_SIZE + SPACING);
-
-                    obstacle.setPosition(posX, posY);
-                    obstacleGrid[row][col] = obstacle;
                 }
+                scanner.close();
+                System.out.println("[DEBUG] Map loaded successfully");
             }
-            scanner.close();
-
-            System.out.println("[DEBUG] Map loaded successfully");
         } catch (Exception e) {
-            System.out.println("[DEBUG] Failed to load map_layout.txt: " + e.getMessage());
+            System.out.println("[DEBUG] Failed to load obstacle_layout.txt: " + e.getMessage());
         }
-
 
         for (int i = 0; i < 24; i++) {
             Obstacle wall = new Obstacle(true);
@@ -116,22 +120,22 @@ public class Farm {
         for (int i = 0; i < 24; i++) {
             Obstacle wall = new Obstacle(true);
             wall.setImage("wall6.png");
-            wall.setPosition(width-20, 24+ i * (80));
+            wall.setPosition(width - 20, 24 + i * (80));
             verticalWallRight.add(wall);
         }
 
-                // Create upper horizontal walls
+        // Create upper horizontal walls
         for (int i = 0; i < 70; i++) {
             Obstacle wall = new Obstacle(true);
             wall.setImage("wall5.png");
-            wall.setPosition( i * (68), 16);
+            wall.setPosition(i * (68), 16);
             horizontalWallUpper.add(wall);
         }
 
         for (int i = 0; i < 70; i++) {
             Obstacle wall = new Obstacle(true);
             wall.setImage("wall1.png");
-            wall.setPosition(10 + i * (40 + WALL_SPACING), height-64);
+            wall.setPosition(10 + i * (40 + WALL_SPACING), height - 64);
             horizontalWallLower.add(wall);
         }
 
