@@ -39,13 +39,13 @@ public class SceneManager {
         game.start(input, serverIp, playerId, avatarState);
     }
 
-    public void switchToLobby(String playerName, boolean isHost, String ip) {
+    public void switchToLobby(String playerName, boolean isHost, String ip, String code) {
         // Stop any existing game loop
         if (this.game != null) {
             this.game.stop();
         }
 
-        Lobby lobby = new Lobby(this, playerName, isHost, ip);
+        Lobby lobby = new Lobby(this, playerName, isHost, ip, code);
         setScene(lobby.getScene());
     }
 

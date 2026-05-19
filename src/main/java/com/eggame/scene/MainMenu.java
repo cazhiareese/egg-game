@@ -158,7 +158,7 @@ public class MainMenu {
                     javafx.application.Platform.runLater(() -> {
                         if (this.sceneManager != null) {
                             System.out.println(localIp);
-                            this.sceneManager.switchToLobby("Host", true, localIp);
+                            this.sceneManager.switchToLobby("Host", true, localIp, roomCode);
                         }
                     });
                 } catch (Exception ex) {
@@ -185,7 +185,7 @@ public class MainMenu {
 
                 String ip = Hashing.codeToIp(code);
                 // Go directly to lobby — the Lobby handles the actual JOIN
-                sceneManager.switchToLobby("Player", false, ip);
+                sceneManager.switchToLobby("Player", false, ip, code);
             });
 
         });
