@@ -1,12 +1,20 @@
 package com.eggame.scene;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Enumeration;
+
+import com.eggame.network.GameServer;
+
 import javafx.animation.TranslateTransition;
 import javafx.animation.ScaleTransition;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -15,6 +23,8 @@ import javafx.scene.text.Text;
 import javafx.util.Duration;
 
 public class MainMenu {
+
+    private boolean serverRunning = false;
 
     private Scene scene;
     private SceneManager sceneManager;
@@ -133,7 +143,51 @@ public class MainMenu {
             }
         });
 
-        uiLayer.getChildren().addAll(title, playButton, instructionsButton, customizeButton);
+        // HOST SERVER BUTTON
+        Button hostButton = createMenuButton("Host Server");
+        Text serverInfoText = new Text();
+        try {
+            Font infoFont = Font.loadFont(getClass().getResourceAsStream("/com/eggame/fonts.ttf"), 18);
+            if (infoFont != null) {
+                serverInfoText.setFont(infoFont);
+            } else {
+                serverInfoText.setFont(Font.font("Quicksand", 14));
+            }
+        } catch (Exception e) {
+            serverInfoText.setFont(Font.font("Quicksand", 14));
+        }
+        serverInfoText.setFill(javafx.scene.paint.Color.web("#FFF7D6"));
+        serverInfoText.setStroke(javafx.scene.paint.Color.web("#60312B"));
+        serverInfoText.setStrokeType(javafx.scene.shape.StrokeType.OUTSIDE);
+        serverInfoText.setStrokeWidth(2);
+        serverInfoText.setTranslateX(-340);
+        serverInfoText.setTranslateY(-70);
+        serverInfoText.setVisible(false);
+
+        hostButton.setOnAction(e -> {
+            if (!serverRunning) {
+                serverRunning = true;
+                Thread serverThread = new Thread(() -> {
+                    try {
+                        new GameServer().run();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                });
+                serverThread.setDaemon(true);
+                serverThread.start();
+
+                String ip = getLocalIPAddress();
+                serverInfoText.setText("Server running at: " + ip + ":9876");
+                serverInfoText.setVisible(true);
+
+                // Disable button to prevent starting multiple servers
+                hostButton.setDisable(true);
+                hostButton.setOpacity(0.5);
+            }
+        });
+
+        uiLayer.getChildren().addAll(title, playButton, instructionsButton, customizeButton, hostButton, serverInfoText);
 
         // sample sprite layer
         Pane spriteLayer = new Pane();
@@ -212,6 +266,29 @@ public class MainMenu {
         });
 
         return btn;
+    }
+
+    /**
+     * Returns the local (non-loopback) IP address of this machine.
+     */
+    private String getLocalIPAddress() {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface iface = interfaces.nextElement();
+                if (iface.isLoopback() || !iface.isUp()) continue;
+                Enumeration<InetAddress> addresses = iface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    if (addr instanceof java.net.Inet4Address) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "127.0.0.1";
     }
 
     public Scene getScene() {
