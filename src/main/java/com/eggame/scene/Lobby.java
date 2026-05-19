@@ -80,7 +80,7 @@ public class Lobby {
     private void connectToServer(String playerName) {
         try {
             socket = new DatagramSocket();
-            InetAddress serverAddr = InetAddress.getByName("localhost");
+            InetAddress serverAddr = InetAddress.getByName(this.ip);
             socket.setSoTimeout(10000);
             // Send JOIN packet
             String joinMsg = PacketType.JOIN + "|" + playerName;
@@ -165,7 +165,7 @@ public class Lobby {
             String msg = PacketType.START_GAME + "|" + localPlayerId;
             byte[] data = msg.getBytes();
             socket.send(new DatagramPacket(data, data.length,
-                    InetAddress.getByName("localhost"), 9876));
+                    InetAddress.getByName(this.ip), 9876));
         } catch (Exception e) {
             e.printStackTrace();
         }
