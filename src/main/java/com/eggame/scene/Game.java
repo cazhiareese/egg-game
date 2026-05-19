@@ -246,6 +246,12 @@ public class Game {
         if (gameLoop != null) {
             gameLoop.stop();
         }
+
+        // disconnect and send leave
+        if (client != null) {
+            client.disconnect();
+            client = null;
+        }
     }
 
     private void update(double deltaTime) {

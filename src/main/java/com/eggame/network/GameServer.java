@@ -69,6 +69,8 @@ public class GameServer {
                 handleChat(parts);
             } else if (type.equals(PacketType.RESET)) {
                 handleReset();
+            } else if (type.equals(PacketType.LEAVE)) {
+                handleLeave(parts);
             }
         }
     }
@@ -86,18 +88,61 @@ public class GameServer {
         System.out.println("Game was reset by a client.");
     }
 
+    // handle leave request from client - removes the client from the game
+    private void handleLeave(String[] parts) {
+        if (parts.length < 2)
+            return;
+        try {
+            int playerId = Integer.parseInt(parts[1]);
+            clients.remove(playerId);
+            lastHeard.remove(playerId);
+
+            // if player is unresponsive, place them off screen first
+            if (playerId >= 0 && playerId < villagers.size()) {
+                villagers.get(playerId).setPosition(-9999, -9999);
+            }
+            System.out.println("Player " + playerId + " left the game.");
+
+            // if all players left, reset the game
+            if (clients.isEmpty()) {
+                handleReset();
+                System.out.println("All players left. Resetting game and server state.");
+            }
+        } catch (NumberFormatException e) {
+
+        }
+    }
+
     private void handleJoin(String[] parts, DatagramPacket packet) throws Exception {
         String playerName = parts[1];
-        int id = nextPlayerId++;
+        int id = -1;
+
+        // find a disconnected slot
+        for (int i = 0; i < villagers.size(); i++) {
+            if (!clients.containsKey(i)) {
+                id = i;
+                break;
+            }
+        }
+        if (id == -1) {
+            id = nextPlayerId++;
+            Villager v = new Villager(playerName);
+            v.setPlayerId(id);
+            villagers.add(v);
+        }
+        Villager v = villagers.get(id);
+        v.setName(playerName);
+        v.getEggTray().getEggs().clear();
+        v.setEggsReturned(0);
+
         clients.put(id, new InetSocketAddress(packet.getAddress(), packet.getPort()));
         lastHeard.put(id, System.currentTimeMillis());
-        Villager v = new Villager(playerName);
-        v.setPlayerId(id);
+
         double preferredX = WORLD_WIDTH / 2.0 + id * 150;
         double preferredY = WORLD_HEIGHT / 2.0;
         double[] safe = Logic.findSafeSpawn(preferredX, preferredY, nests, farm);
         v.setPosition(safe[0], safe[1]);
-        villagers.add(v);
+
         // Send back: JOIN_ACK|playerId|totalPlayers
         String ack = PacketType.JOIN_ACK + "|" + id + "|" + clients.size();
         byte[] ackData = ack.getBytes();
@@ -105,7 +150,6 @@ public class GameServer {
                 packet.getAddress(), packet.getPort()));
 
         System.out.println(playerName + " joined as Player " + id);
-
     }
 
     private void handleInput(String[] parts) {
@@ -179,6 +223,29 @@ public class GameServer {
             }
 
             try {
+                // remove disconnected clients
+                long now = System.currentTimeMillis();
+                List<Integer> toRemove = new ArrayList<>();
+                for (Map.Entry<Integer, Long> entry : lastHeard.entrySet()) {
+                    if (now - entry.getValue() > CLIENT_TIMEOUT_MS) {
+                        toRemove.add(entry.getKey());
+                    }
+                }
+                for (int id : toRemove) {
+                    clients.remove(id);
+                    lastHeard.remove(id);
+                    if (id >= 0 && id < villagers.size()) {
+                        villagers.get(id).setPosition(-9999, -9999);
+                    }
+                    System.out.println("Player " + id + " timed out.");
+                }
+
+                // if all players timed out/left, reset the game
+                if (clients.isEmpty() && !toRemove.isEmpty()) {
+                    handleReset();
+                    System.out.println("All players left. Resetting game and server state.");
+                }
+
                 if (!clients.isEmpty()) {
                     broadcastGameState();
                 }
