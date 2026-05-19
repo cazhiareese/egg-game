@@ -72,6 +72,14 @@ public class GameServer {
             String message = new String(packet.getData(), 0, packet.getLength());
             String[] parts = message.split("\\|");
             String type = parts[0];
+
+            // used to check if the server exists
+            if (type.equals("PING")) {
+                byte[] ackData = "PONG".getBytes();
+                socket.send(new DatagramPacket(ackData, ackData.length, packet.getAddress(), packet.getPort()));
+                continue; 
+            }
+
             if (type.equals(PacketType.JOIN)) {
                 handleJoin(parts, packet);
             } else if (type.equals(PacketType.INPUT)) {

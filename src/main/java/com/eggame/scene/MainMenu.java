@@ -170,23 +170,56 @@ public class MainMenu {
 
         Button joinServer = createMenuButton("Join Game");
         joinServer.setOnAction(e -> {
-            TextInputDialog dialog = new TextInputDialog("192.168.1.");
+            TextInputDialog dialog = new TextInputDialog("");
             dialog.setTitle("Join Game");
-            dialog.setHeaderText("Enter 4 Digit Code:");
+            dialog.setHeaderText("Enter 4-Character Room Code:");
 
             dialog.showAndWait().ifPresent(code -> {
-                if (code.isBlank())
+                if (code.isBlank() || code.length() != 4) {
+                    showError("Codes must be exactly 4 characters.");
                     return;
-                if (code.length() != 4) {
-                   showError("Codes must be exactly 4 characters.");
-                    return;                
                 }
 
                 String ip = Hashing.codeToIp(code);
-                // Go directly to lobby — the Lobby handles the actual JOIN
-                sceneManager.switchToLobby("Player", false, ip, code);
-            });
+                if (ip == null) {
+                    showError("Invalid Room Code.");
+                    return;
+                }
 
+                new Thread(() -> {
+                    try (java.net.DatagramSocket testSocket = new java.net.DatagramSocket()) {
+                        java.net.InetAddress address = java.net.InetAddress.getByName(ip);
+                        testSocket.setSoTimeout(2000); // 2 second timeout
+                        
+                        // for checking if server is created
+                        byte[] sendData = "PING".getBytes();
+                        java.net.DatagramPacket sendPacket = new java.net.DatagramPacket(
+                                sendData, sendData.length, address, 9876);
+                        testSocket.send(sendPacket);
+
+                        // receive a response
+                        byte[] recvData = new byte[1024];
+                        java.net.DatagramPacket recvPacket = new java.net.DatagramPacket(recvData, recvData.length);
+                        testSocket.receive(recvPacket);
+
+                        // check if pong was sent
+                        String response = new String(recvPacket.getData(), 0, recvPacket.getLength());
+                        
+                        if (response.equals("PONG")) {
+                            javafx.application.Platform.runLater(() -> {
+                                sceneManager.switchToLobby("Player", false, ip, code);
+                            });
+                        } else {
+                            throw new Exception("Invalid server response");
+                        }
+
+                    } catch (Exception ex) {
+                        javafx.application.Platform.runLater(() -> {
+                            showError("No game found at code: " + code.toUpperCase());
+                        });
+                    }
+                }).start();
+            });
         });
 
         Button instructionsButton = createMenuButton("Instructions"); // INSTRUCTIONS BUTTON
