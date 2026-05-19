@@ -54,7 +54,7 @@ Norman Marfa III - [GitHub](https://github.com/neMarfa)
 
 
 
-All rights reserved. © 2025 CMSC 137 Data Communications and Networking Project.
+All rights reserved. © 2026 CMSC 137 Data Communications and Networking Project.
 
 
 
